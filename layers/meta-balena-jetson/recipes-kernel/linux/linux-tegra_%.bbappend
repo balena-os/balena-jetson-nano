@@ -37,6 +37,10 @@ SRC_URI_append_jn30b-nano = " \
     file://tegra210-p3448-0002-p3449-0000-b00-jn30b-JP4.2.2.dtb \
 "
 
+SRC_URI_append_m2pcie-tx2 = " \
+    file://0001-Add-gasket-module-1.1.3.patch \
+"
+
 TEGRA_INITRAMFS_INITRD = "0"
 
 RESIN_CONFIGS_append = " tegra-wdt-t21x debug_kmemleak "
@@ -122,6 +126,12 @@ RESIN_CONFIGS[can] = " \
                 CONFIG_MTTCAN_IVC=m \
 "
 
+RESIN_CONFIGS_append_m2pcie-tx2 = " gasket"
+RESIN_CONFIGS[gasket] = " \
+        CONFIG_STAGING_GASKET_FRAMEWORK=m \
+        CONFIG_STAGING_APEX_DRIVER=m \
+        "
+
 RESIN_CONFIGS_append_srd3-tx2 = " tpg"
 
 KERNEL_MODULE_AUTOLOAD_srd3-tx2 += " nvhost-vi-tpg "
@@ -135,6 +145,9 @@ KERNEL_ROOTSPEC_jetson-xavier = ""
 # to u-boot where it was 1. This is another cause of failure of
 # previous flasher images.  Use label to distinguish rootfs
 KERNEL_ROOTSPEC_FLASHER_jetson-tx2 = " root=LABEL=flash-rootA ro rootwait sdhci_tegra.en_boot_part_access=1 flasher"
+
+KERNEL_ROOTSPEC_append_m2pcie-tx2 = " gasket.dma_bit_mask=32 pcie_aspm=off"
+KERNEL_ROOTSPEC_FLASHER_append_m2pcie-tx2 = " gasket.dma_bit_mask=32 pcie_aspm=off"
 
 generate_extlinux_conf() {
     install -d ${D}/${KERNEL_IMAGEDEST}/extlinux
