@@ -46,6 +46,10 @@ SRC_URI_append_jetson-tx2 = " \
     file://0001-gasket-Backport-gasket-driver-from-linux-coral.patch \
 "
 
+SRC_URI_append_skx2 = " \
+    file://tegra186-tx2-cti-ASG916.dtb \
+"
+
 SRC_URI_append_jn30b-nano = " \
     file://tegra210-p3448-0002-p3449-0000-b00-jn30b-JP4.3.dtb \
 "
@@ -156,6 +160,18 @@ RESIN_CONFIGS[gasket] = " \
         CONFIG_STAGING_APEX_DRIVER=m \
 "
 
+RESIN_CONFIGS_append_skx2 = " cdc_acm wdm"
+
+RESIN_CONFIGS_DEPS[cdc_acm] = " \
+    CONFIG_TTY=y \
+"
+RESIN_CONFIGS[cdc_acm] = " \
+    CONFIG_USB_ACM=m \
+"
+RESIN_CONFIGS[wdm] = " \
+    CONFIG_USB_WDM=m \
+"
+
 RESIN_CONFIGS_append_srd3-tx2 = " tpg d3_hdr"
 
 RESIN_CONFIGS_append_photon-nano = " tlc591xx"
@@ -214,6 +230,10 @@ FILES_${KERNEL_PACKAGE_NAME}-image_append = "/boot/extlinux/extlinux.conf /boot/
 
 do_deploy_append_spacely-tx2() {
    cp ${WORKDIR}/tegra186-tx2-cti-ASG006-IMX274-6CAM.dtb "${DEPLOYDIR}"
+}
+
+do_deploy_append_skx2() {
+    cp ${WORKDIR}/tegra186-tx2-cti-ASG916.dtb "${DEPLOYDIR}"
 }
 
 do_deploy_append_orbitty-tx2() {

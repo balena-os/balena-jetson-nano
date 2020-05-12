@@ -1,7 +1,8 @@
 # Supported machines
 #MACHINE ?= "jetson-nano"
+#MACHINE ?= "skx2"
 
-# We use the overlayfs docker storage driver on the Nvidia Jetson Nano
+# We use the overlayfs docker storage driver on the Nvidia Jetson family
 BALENA_STORAGE = "overlay2"
 
 # More info meta-resin/README.md
