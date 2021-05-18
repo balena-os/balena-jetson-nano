@@ -4,11 +4,6 @@ UBOOT_KCONFIG_SUPPORT = "1"
 
 inherit resin-u-boot
 
-# We pin to the release in 32.4.4 branch - as of 12 Jan 2021
-# to ensure we don't get updates that might break the build
-# or booting in general.
-SRCREV = "24abfbe6dbdb758be8d0ab0da457aa2af07ba55a"
-
 LIC_FILES_CHKSUM = "\
     file://Licenses/README;md5=5a7450c57ffe5ae63fd732446b988025 \
 "
