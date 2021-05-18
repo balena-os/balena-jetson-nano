@@ -4,11 +4,6 @@ FILESEXTRAPATHS_append := ":${THISDIR}/${PN}"
 
 SCMVERSION="n"
 
-# We pin to the 32.4.4 revision as of 12 Jan 2021
-# to ensure the upstream BSP layer doesn't bring in a newer
-# version that might fail to build or boot without notice.
-SRCREV = "87e09c14b15ad302b451f40f4237bb14f553c1e0"
-
 # Prevent delayed booting
 # and support using partition label to load rootfs
 # in the case of jetson-xavier and tx2 flasher
