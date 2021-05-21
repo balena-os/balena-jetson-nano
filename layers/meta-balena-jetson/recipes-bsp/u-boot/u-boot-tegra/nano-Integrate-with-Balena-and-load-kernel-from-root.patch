@@ -1,9 +1,9 @@
-From 74a7ad39aeface4db7230d393aaef86d47f75618 Mon Sep 17 00:00:00 2001
+From ce8d557a3c57a27c19adee7ed4abe1d2d22e3ee2 Mon Sep 17 00:00:00 2001
 From: Alexandru Costache <alexandru@balena.io>
-Date: Mon, 11 Jan 2021 14:28:11 +0100
+Date: Fri, 21 May 2021 11:36:34 +0200
 Subject: [PATCH] nano: Integrate with Balena and load kernel from rootfs
 
-This is a port to L4T 32.4.4 of the existent patches,
+This is a port to L4T 32.5.1 of the existent patches,
 as jetson nano u-boot machine name was changed.
 
 It integrates BalenaOS with Jetson Nano SD, eMMC, 2GB devkit
@@ -12,17 +12,26 @@ u-boot.
 Upstream-status: Inappropriate [configuration]
 Signed-off-by: Alexandru Costache <alexandru@balena.io>
 ---
- configs/p3450-0000_defconfig    | 55 +++++++++++++++++++--------------
- configs/p3450-0002_defconfig    | 52 +++++++++++++++++--------------
- configs/p3541-0000_defconfig    | 55 +++++++++++++++++++--------------
- include/config_distro_bootcmd.h | 14 +++++++--
- include/configs/p3450-0000.h    |  2 ++
- 5 files changed, 104 insertions(+), 74 deletions(-)
+ configs/p3450-0000_defconfig    | 63 ++++++++++++++++++---------------
+ configs/p3450-0002_defconfig    | 63 ++++++++++++++++++---------------
+ configs/p3541-0000_defconfig    | 61 +++++++++++++++++--------------
+ include/config_distro_bootcmd.h | 14 ++++++--
+ include/configs/p3450-0000.h    |  8 ++---
+ 5 files changed, 117 insertions(+), 92 deletions(-)
 
 diff --git a/configs/p3450-0000_defconfig b/configs/p3450-0000_defconfig
-index 31892ad22d..5d784fb00a 100644
+index 5f53b6fdcf..179a1484a7 100644
 --- a/configs/p3450-0000_defconfig
 +++ b/configs/p3450-0000_defconfig
+@@ -1,7 +1,7 @@
+ CONFIG_ARM=y
+ CONFIG_ARCH_TEGRA=y
+ CONFIG_SYS_TEXT_BASE=0x80080000
+-CONFIG_ENV_SIZE=0x2000
++CONFIG_ENV_SIZE=0x3000
+ CONFIG_ENV_SECT_SIZE=0x1000
+ CONFIG_ENV_OFFSET=0xFFFD8000
+ CONFIG_NR_DRAM_BANKS=16
 @@ -18,18 +18,18 @@ CONFIG_CMD_DFU=y
  CONFIG_CMD_GPIO=y
  CONFIG_CMD_I2C=y
@@ -49,7 +58,7 @@ index 31892ad22d..5d784fb00a 100644
  CONFIG_DFU_MMC=y
  CONFIG_DFU_RAM=y
  CONFIG_DFU_SF=y
-@@ -37,24 +37,31 @@ CONFIG_SYS_I2C_TEGRA=y
+@@ -37,29 +37,36 @@ CONFIG_SYS_I2C_TEGRA=y
  CONFIG_SF_DEFAULT_MODE=0
  CONFIG_SF_DEFAULT_SPEED=24000000
  CONFIG_SPI_FLASH_MACRONIX=y
@@ -88,9 +97,17 @@ index 31892ad22d..5d784fb00a 100644
 -CONFIG_USB_GADGET_DOWNLOAD=y
 -CONFIG_USB_HOST_ETHER=y
 -CONFIG_USB_ETHER_ASIX=y
+-CONFIG_USB_XHCI_HCD=y
+-CONFIG_USB_XHCI_TEGRA=y
+-CONFIG_USB_STORAGE=y
 +#CONFIG_USB_GADGET_DOWNLOAD=y
 +#CONFIG_USB_HOST_ETHER=y
 +#CONFIG_USB_ETHER_ASIX=y
++#CONFIG_USB_XHCI_HCD=y
++#CONFIG_USB_XHCI_TEGRA=y
++#CONFIG_USB_STORAGE=y
+ CONFIG_DOS_PARTITION=y
+ CONFIG_CMD_CACHE=y
 +CONFIG_CMD_PART=y
 +CONFIG_PARTITION_UUIDS=y
 +CONFIG_CMD_IMPORTENV=y
@@ -99,10 +116,19 @@ index 31892ad22d..5d784fb00a 100644
 +CONFIG_CMD_FS_UUID=y
 +CONFIG_AUTOBOOT=y
 diff --git a/configs/p3450-0002_defconfig b/configs/p3450-0002_defconfig
-index 088ac3200f..3987b20992 100644
+index 36b598fb5b..8ed8d12fa4 100644
 --- a/configs/p3450-0002_defconfig
 +++ b/configs/p3450-0002_defconfig
-@@ -18,39 +18,45 @@ CONFIG_CMD_DFU=y
+@@ -1,7 +1,7 @@
+ CONFIG_ARM=y
+ CONFIG_ARCH_TEGRA=y
+ CONFIG_SYS_TEXT_BASE=0x80080000
+-CONFIG_ENV_SIZE=0x2000
++CONFIG_ENV_SIZE=0x3000
+ CONFIG_ENV_OFFSET=0xFFFD8000
+ CONFIG_NR_DRAM_BANKS=16
+ CONFIG_TEGRA210=y
+@@ -18,17 +18,17 @@ CONFIG_CMD_DFU=y
  CONFIG_CMD_GPIO=y
  CONFIG_CMD_I2C=y
  CONFIG_CMD_MMC=y
@@ -112,24 +138,33 @@ index 088ac3200f..3987b20992 100644
 -CONFIG_CMD_USB=y
 -CONFIG_CMD_USB_MASS_STORAGE=y
 -# CONFIG_CMD_SETEXPR is not set
+-CONFIG_BOOTP_PREFER_SERVERIP=y
 +#CONFIG_CMD_USB=y
 +#CONFIG_CMD_USB_MASS_STORAGE=y
-+CONFIG_CMD_SETEXPR=y
++#CONFIG_CMD_SETEXPR=y
++#CONFIG_BOOTP_PREFER_SERVERIP=y
  # CONFIG_CMD_NFS is not set
 -CONFIG_CMD_EXT4_WRITE=y
 +#CONFIG_CMD_EXT4_WRITE=y
  CONFIG_OF_LIVE=y
- CONFIG_DEFAULT_DEVICE_TREE="tegra210-p3450-0000"
+ CONFIG_ENV_OVERWRITE=y
+-CONFIG_ENV_IS_IN_MMC=y
++#CONFIG_ENV_IS_IN_MMC=y
+ # CONFIG_ENV_IS_IN_SPI_FLASH is not set
  CONFIG_DFU_MMC=y
  CONFIG_DFU_RAM=y
- CONFIG_DFU_SF=y
- CONFIG_SYS_I2C_TEGRA=y
+@@ -37,29 +37,36 @@ CONFIG_SYS_I2C_TEGRA=y
+ CONFIG_SF_DEFAULT_MODE=0
+ CONFIG_SF_DEFAULT_SPEED=24000000
+ CONFIG_SPI_FLASH_MACRONIX=y
 -CONFIG_RTL8169=y
+-CONFIG_NVME=y
 -CONFIG_PCI=y
 -CONFIG_DM_PCI=y
 -CONFIG_DM_PCI_COMPAT=y
 -CONFIG_PCI_TEGRA=y
 +#CONFIG_RTL8169=y
++#CONFIG_NVME=y
 +#CONFIG_PCI=y
 +#CONFIG_DM_PCI=y
 +#CONFIG_DM_PCI_COMPAT=y
@@ -157,22 +192,26 @@ index 088ac3200f..3987b20992 100644
 -CONFIG_USB_GADGET_DOWNLOAD=y
 -CONFIG_USB_HOST_ETHER=y
 -CONFIG_USB_ETHER_ASIX=y
--CONFIG_ENV_IS_IN_MMC=y
+-CONFIG_USB_XHCI_HCD=y
+-CONFIG_USB_XHCI_TEGRA=y
+-CONFIG_USB_STORAGE=y
 +#CONFIG_USB_GADGET_DOWNLOAD=y
 +#CONFIG_USB_HOST_ETHER=y
 +#CONFIG_USB_ETHER_ASIX=y
-+#CONFIG_ENV_IS_IN_MMC=y
- CONFIG_ENV_SECT_SIZE=0x1000
--CONFIG_BOOTP_PREFER_SERVERIP=y
-+#CONFIG_BOOTP_PREFER_SERVERIP=y
++#CONFIG_USB_XHCI_HCD=y
++#CONFIG_USB_XHCI_TEGRA=y
++#CONFIG_USB_STORAGE=y
+ CONFIG_DOS_PARTITION=y
+ CONFIG_CMD_CACHE=y
 +CONFIG_CMD_PART=y
 +CONFIG_PARTITION_UUIDS=y
 +CONFIG_CMD_IMPORTENV=y
 +CONFIG_BOOTDELAY=0
 +CONFIG_CMD_EXPORTENV=y
 +CONFIG_CMD_FS_UUID=y
++CONFIG_AUTOBOOT=y
 diff --git a/configs/p3541-0000_defconfig b/configs/p3541-0000_defconfig
-index 19b197d834..d69614a849 100644
+index 967a6a374b..cb6ec71ba4 100644
 --- a/configs/p3541-0000_defconfig
 +++ b/configs/p3541-0000_defconfig
 @@ -17,18 +17,18 @@ CONFIG_CMD_DFU=y
@@ -188,7 +227,7 @@ index 19b197d834..d69614a849 100644
 -CONFIG_BOOTP_PREFER_SERVERIP=y
 +#CONFIG_CMD_USB=y
 +#CONFIG_CMD_USB_MASS_STORAGE=y
-+CONFIG_CMD_SETEXPR is not set
++CONFIG_CMD_SETEXPR=y
 +#CONFIG_BOOTP_PREFER_SERVERIP=y
  # CONFIG_CMD_NFS is not set
 -CONFIG_CMD_EXT4_WRITE=y
@@ -201,7 +240,7 @@ index 19b197d834..d69614a849 100644
  CONFIG_DFU_MMC=y
  CONFIG_DFU_RAM=y
  CONFIG_DFU_SF=y
-@@ -36,24 +36,31 @@ CONFIG_SYS_I2C_TEGRA=y
+@@ -36,29 +36,36 @@ CONFIG_SYS_I2C_TEGRA=y
  CONFIG_SF_DEFAULT_MODE=0
  CONFIG_SF_DEFAULT_SPEED=24000000
  CONFIG_SPI_FLASH_MACRONIX=y
@@ -240,9 +279,17 @@ index 19b197d834..d69614a849 100644
 -CONFIG_USB_GADGET_DOWNLOAD=y
 -CONFIG_USB_HOST_ETHER=y
 -CONFIG_USB_ETHER_ASIX=y
+-CONFIG_USB_XHCI_HCD=y
+-CONFIG_USB_XHCI_TEGRA=y
+-CONFIG_USB_STORAGE=y
 +#CONFIG_USB_GADGET_DOWNLOAD=y
 +#CONFIG_USB_HOST_ETHER=y
 +#CONFIG_USB_ETHER_ASIX=y
++#CONFIG_USB_XHCI_HCD=y
++#CONFIG_USB_XHCI_TEGRA=y
++#CONFIG_USB_STORAGE=y
+ CONFIG_DOS_PARTITION=y
+ CONFIG_CMD_CACHE=y
 +CONFIG_CMD_PART=y
 +CONFIG_PARTITION_UUIDS=y
 +CONFIG_CMD_IMPORTENV=y
@@ -251,7 +298,7 @@ index 19b197d834..d69614a849 100644
 +CONFIG_CMD_FS_UUID=y
 +CONFIG_AUTOBOOT=y
 diff --git a/include/config_distro_bootcmd.h b/include/config_distro_bootcmd.h
-index fc0935fa21..276f8769e9 100644
+index b42e447fc5..44dc03d60e 100644
 --- a/include/config_distro_bootcmd.h
 +++ b/include/config_distro_bootcmd.h
 @@ -31,6 +31,8 @@
@@ -263,7 +310,7 @@ index fc0935fa21..276f8769e9 100644
  #define BOOTENV_SHARED_BLKDEV(devtypel) \
  	#devtypel "_boot=" \
  	BOOTENV_SHARED_BLKDEV_BODY(devtypel)
-@@ -422,6 +424,7 @@
+@@ -440,6 +442,7 @@
  	"boot_script_dhcp=boot.scr.uimg\0" \
  	BOOTENV_BOOT_TARGETS \
  	\
@@ -271,7 +318,7 @@ index fc0935fa21..276f8769e9 100644
  	"boot_syslinux_conf=extlinux/extlinux.conf\0" \
  	"boot_extlinux="                                                  \
  		"sysboot ${devtype} ${devnum}:${distro_bootpart} any "    \
-@@ -437,7 +440,7 @@
+@@ -455,7 +458,7 @@
  		"fi\0"                                                    \
  	\
  	"boot_a_script="                                                  \
@@ -280,7 +327,7 @@ index fc0935fa21..276f8769e9 100644
  			"${scriptaddr} ${prefix}${script}; "              \
  		"source ${scriptaddr}\0"                                  \
  	\
-@@ -464,7 +467,8 @@
+@@ -482,7 +485,8 @@
  		"\0"                                                      \
  	\
  	"scan_dev_for_boot_part="                                         \
@@ -290,40 +337,49 @@ index fc0935fa21..276f8769e9 100644
  		"env exists devplist || setenv devplist 1; "              \
  		"for distro_bootpart in ${devplist}; do "                 \
  			"if fstype ${devtype} "                           \
-@@ -481,8 +485,12 @@
+@@ -499,8 +503,12 @@
  		BOOTENV_SET_NVME_NEED_INIT                                \
  		BOOTENV_SET_IDE_NEED_INIT                                 \
  		BOOTENV_SET_VIRTIO_NEED_INIT                              \
 +		"setenv resin_kernel_load_addr ${loadaddr}; "             \
  		"for target in ${boot_targets}; do "                      \
 -			"run bootcmd_${target}; "                         \
-+			"if env exist resin_set_kernel_root; then "       \
-+				"run resin_set_kernel_root; run set_os_cmdline; "  \
-+				"run bootcmd_${target}; "                 \
-+			"fi; "						  \
++                       "if env exist resin_set_kernel_root; then "       \
++                               "run resin_set_kernel_root; run set_os_cmdline; "  \
++                               "run bootcmd_${target}; "                 \
++                       "fi; " \
  		"done\0"
  
  #ifndef CONFIG_BOOTCOMMAND
 diff --git a/include/configs/p3450-0000.h b/include/configs/p3450-0000.h
-index 2457b6f8ac..45ca6b2128 100644
+index 0e08181fb3..a5e54ea3e9 100644
 --- a/include/configs/p3450-0000.h
 +++ b/include/configs/p3450-0000.h
-@@ -17,6 +17,7 @@
+@@ -17,10 +17,8 @@
  #define CONFIG_TEGRA_BOARD_STRING	"NVIDIA P3450-0002"
  #define BOOT_TARGET_DEVICES(func) \
  	func(MMC, mmc, 0) \
+-	func(USB, usb, 0) \
+-	func(NVME, nvme, 0) \
 +	func(MMC, mmc, 1) \
  	func(PXE, pxe, na) \
- 	func(DHCP, dhcp, na)
+-	func(DHCP, dhcp, na)
  #define CONFIG_SYS_MMC_ENV_DEV		0
-@@ -28,6 +29,7 @@
+ #define CONFIG_SYS_MMC_ENV_PART		2
+ #define DEFAULT_MMC_DEV			"0"
+@@ -30,11 +28,9 @@
  
  /* Only MMC/PXE/DHCP for now, add USB back in later when supported */
  #define BOOT_TARGET_DEVICES(func) \
 +	func(MMC, mmc, 0) \
  	func(MMC, mmc, 1) \
+-	func(USB, usb, 0) \
+-	func(NVME, nvme, 0) \
  	func(PXE, pxe, na) \
- 	func(DHCP, dhcp, na)
+-	func(DHCP, dhcp, na)
+ 
+ /* Environment at end of QSPI, in the VER partition */
+ #define CONFIG_ENV_SPI_MAX_HZ		48000000
 -- 
 2.17.1
 
