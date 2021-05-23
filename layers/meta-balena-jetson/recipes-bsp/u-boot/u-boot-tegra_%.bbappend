@@ -8,6 +8,17 @@ LIC_FILES_CHKSUM = "\
     file://Licenses/README;md5=5a7450c57ffe5ae63fd732446b988025 \
 "
 
+# The u-boot version 2021.01 from
+# meta-tegra doesn't work well when
+# booting with custom device trees, even
+# if it's the same dt that's written
+# in the bootblob or in the dtb partitions.
+# Let's switch to using the Nvidia u-boot.
+SRCBRANCH="l4t/l4t-r32.5-v2020.04"
+SRCREV="6b630d64fd86beec3efb3312581c50ee8e23a05b"
+
+LIC_FILES_CHKSUM="file://Licenses/README;md5=30503fd321432fc713238f582193b78e"
+
 BALENA_BOOT_PART_jetson-nano = "0xC"
 BALENA_DEFAULT_ROOT_PART_jetson-nano = "0xD"
 BALENA_BOOT_PART_jetson-nano-emmc = "0xC"
@@ -40,8 +51,8 @@ SRC_URI_append = " file://local-resin-specific-env-integration-kconfig.patch "
 # for all boards that use u-boot
 SRC_URI_append = " \
     file://menu-Use-default-menu-entry-from-extlinux.conf.patch \
-    file://sysboot-read-custom-fdt-from-env.patch \
     file://0001-add-back-config-defaults.patch \
+    file://sysboot-read-custom-fdt-from-env.patch \
 "
 
 # Uses sd-card defconfig
