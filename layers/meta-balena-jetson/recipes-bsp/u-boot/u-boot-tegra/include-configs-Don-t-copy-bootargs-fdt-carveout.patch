@@ -1,0 +1,52 @@
+From eff8185b03e4df4ff5e1a963e4e0f86c6405efaa Mon Sep 17 00:00:00 2001
+From: Alexandru Costache <alexandru@balena.io>
+Date: Sun, 23 May 2021 20:42:02 +0200
+Subject: [PATCH] include/configs: Don't copy bootargs fdt carveout
+
+When a custom dtb is loaded with pxe, bootargs
+appended by extlinux is getting overriden with
+the default one from the fdt provided by cboot.
+That one doesn't contain the root device specified
+by resin_kernel_root and thus booting hangs. This
+wouldn't happen with a standard Nvidia image since
+the custom dtb would pass the root device trough
+chosen/bootargs.
+
+Let's not override the bootargs appended by
+extlinux.conf since it already contains the
+cboot cmdline args in our usecase.
+
+Upstream-status: Inappropriate [configuration]
+Signed-off-by: Alexandru Costache <alexandru@balena.io>
+---
+ include/configs/tegra186-common.h | 1 -
+ include/configs/tegra210-common.h | 1 -
+ 2 files changed, 2 deletions(-)
+
+diff --git a/include/configs/tegra186-common.h b/include/configs/tegra186-common.h
+index 42141fddee..1bbab736f8 100644
+--- a/include/configs/tegra186-common.h
++++ b/include/configs/tegra186-common.h
+@@ -58,7 +58,6 @@
+ 	"fdt_copy_prop_paths=" \
+ 		"/bpmp/carveout-start:" \
+ 		"/bpmp/carveout-size:" \
+-		"/chosen/bootargs:" \
+ 		"/chosen/nvidia,bluetooth-mac:" \
+ 		"/chosen/nvidia,ether-mac:" \
+ 		"/chosen/nvidia,wifi-mac:" \
+diff --git a/include/configs/tegra210-common.h b/include/configs/tegra210-common.h
+index b9d9dcae6e..fd8df1b6bd 100644
+--- a/include/configs/tegra210-common.h
++++ b/include/configs/tegra210-common.h
+@@ -65,7 +65,6 @@
+ 	"fdt_copy_prop_paths=" \
+ 		"/bpmp/carveout-start:" \
+ 		"/bpmp/carveout-size:" \
+-		"/chosen/bootargs:" \
+ 		"/chosen/eks_info:" \
+ 		"/chosen/nvidia,bluetooth-mac:" \
+ 		"/chosen/nvidia,ethernet-mac:" \
+-- 
+2.17.1
+

@@ -53,6 +53,7 @@ SRC_URI_append = " \
     file://menu-Use-default-menu-entry-from-extlinux.conf.patch \
     file://0001-add-back-config-defaults.patch \
     file://sysboot-read-custom-fdt-from-env.patch \
+    file://include-configs-Don-t-copy-bootargs-fdt-carveout.patch \
 "
 
 # Uses sd-card defconfig
