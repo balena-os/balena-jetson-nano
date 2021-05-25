@@ -13,6 +13,7 @@ DEPENDS = " \
     tegra-bootfiles \
     tegra194-flashtools-native \
     dtc-native \
+    virtual/bootlogo \
     "
 
 inherit deploy python3native perlnative
@@ -48,7 +49,6 @@ ROOTB_ARGS="root=LABEL=resin-rootB ro rootwait rootfstype=ext4 ${KERNEL_ARGS} ${
 
 BOOTFILES = "\
     adsp-fw.bin \
-    bmp.blob \
     bpmp_t194.bin \
     camera-rtcpu-rce.img \
     eks.img \
@@ -158,8 +158,10 @@ do_configure() {
     ln -s "${DEPLOY_DIR_IMAGE}/cboot-${MACHINE}.bin" ./cboot_t194.bin
     ln -s "${DEPLOY_DIR_IMAGE}/tos-${MACHINE}.img" ./tos-trusty_t194.img
 
+    cp "${DEPLOY_DIR_IMAGE}/bootlogo-${MACHINE}.blob" ./bmp.blob
     mkdir -p ${DEPLOY_DIR_IMAGE}/bootfiles
     cp ./cboot_t194.bin ${DEPLOY_DIR_IMAGE}/bootfiles/
+    cp ./bmp.blob ${DEPLOY_DIR_IMAGE}/bootfiles/
 
     for f in ${BOOTFILES}; do
         ln -s "${STAGING_DATADIR}/tegraflash/$f" .
