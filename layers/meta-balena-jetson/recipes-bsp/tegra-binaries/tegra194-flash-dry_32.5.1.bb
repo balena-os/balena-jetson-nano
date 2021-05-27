@@ -217,7 +217,7 @@ do_configure() {
     dd if=/dev/zero of="${DEPLOY_DIR_IMAGE}/bootfiles/bmp.blob" bs=1K count=70
 
     # This is the Xavier boot0, which wasn't necessary for HUP from L4T 31.x to 32.3.1,
-    # but becomes when moving to L4T 32.4.2.
+    # but becomes when moving to L4T 32.4.2 or newer.
 
     dd if=/dev/zero of=boot0.img bs=8388608 count=1
 
