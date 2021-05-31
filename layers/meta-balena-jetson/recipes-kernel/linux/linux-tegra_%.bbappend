@@ -246,6 +246,7 @@ BALENA_CONFIGS[backlight] = " \
     CONFIG_BACKLIGHT_CLASS_DEVICE=m \
 "
 
+L4TVER=" l4tver=${L4T_VERSION}"
 KERNEL_ROOTSPEC_jetson-nano = "\${resin_kernel_root} ro rootwait"
 KERNEL_ROOTSPEC_jetson-nano-emmc = "\${resin_kernel_root} ro rootwait"
 KERNEL_ROOTSPEC_jetson-nano-2gb-devkit = "\${resin_kernel_root} ro rootwait"
@@ -260,6 +261,8 @@ KERNEL_ROOTSPEC_jetson-xavier-nx-devkit-emmc = ""
 # previous flasher images.  Use label to distinguish rootfs
 KERNEL_ROOTSPEC_FLASHER_jetson-tx2 = " root=LABEL=flash-rootA ro rootwait flasher gasket.dma_bit_mask=32 pcie_aspm=off"
 KERNEL_ROOTSPEC_FLASHER_jetson-tx1 = " root=LABEL=flash-rootA ro rootwait flasher"
+KERNEL_ROOTSPEC_append="${L4TVER}"
+KERNEL_ROOTSPEC_FLASHER_append="${L4TVER}"
 
 generate_extlinux_conf() {
     install -d ${D}/${KERNEL_IMAGEDEST}/extlinux
