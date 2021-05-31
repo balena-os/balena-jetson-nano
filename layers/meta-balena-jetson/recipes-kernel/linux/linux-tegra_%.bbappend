@@ -18,7 +18,7 @@ SRC_URI_append = " \
     file://xhci-ring-Don-t-show-incorrect-WARN-message-about.patch \
 "
 
-SRC_URI_append_jetson-tx2 = " \
+SRC_URI_append_tegra186 = " \
     file://0001-Expose-spidev-to-the-userspace.patch \
     file://0002-mttcan-ivc-enable.patch \
     file://tegra186-tx2-cti-ASG001-USB3.dtb \
@@ -88,7 +88,7 @@ BALENA_CONFIGS[debug_kmemleak] = " \
 "
 
 # These should be for all boards that come from tx2
-BALENA_CONFIGS_append_jetson-tx2 = " tpg eqos_disable_eee"
+BALENA_CONFIGS_append_tegra186 = " tpg eqos_disable_eee"
 BALENA_CONFIGS[tpg] = " \
                 CONFIG_VIDEO_TEGRA_VI_TPG=m \
 "
@@ -100,13 +100,13 @@ BALENA_CONFIGS[eqos_disable_eee] = " \
 "
 
 BALENA_CONFIGS_append_jetson-tx1 = " compat"
-BALENA_CONFIGS_append_jetson-tx2 = " compat"
+BALENA_CONFIGS_append_tegra186 = " compat"
 BALENA_CONFIGS[compat] = " \
                 CONFIG_COMPAT=y \
 "
 
 BALENA_CONFIGS_remove_jetson-tx1 = " brcmfmac"
-BALENA_CONFIGS_append_jetson-tx2 = " uvc"
+BALENA_CONFIGS_append_tegra186 = " uvc"
 BALENA_CONFIGS[uvc] = " \
                 CONFIG_USB_VIDEO_CLASS=m \
                 CONFIG_USB_VIDEO_CLASS_INPUT_EVDEV=y \
@@ -125,17 +125,17 @@ BALENA_CONFIGS_DEPS[uvc] = " \
                 CONFIG_SND_USB_AUDIO=m \
 "
 
-BALENA_CONFIGS_append_jetson-tx2 = " egalax"
+BALENA_CONFIGS_append_tegra186 = " egalax"
 BALENA_CONFIGS[egalax] = " \
                 CONFIG_TOUCHSCREEN_EGALAX=m \
 "
 
-BALENA_CONFIGS_append_jetson-tx2 = " serial"
+BALENA_CONFIGS_append_tegra186 = " serial"
 BALENA_CONFIGS[serial] = " \
                 CONFIG_USB_SERIAL_GENERIC=y \
 "
 
-BALENA_CONFIGS_append_jetson-tx2 = " spi"
+BALENA_CONFIGS_append_tegra186 = " spi"
 BALENA_CONFIGS[spi] = " \
                 CONFIG_SPI=y \
                 CONFIG_SPI_MASTER=y \
@@ -146,7 +146,7 @@ BALENA_CONFIGS_DEPS[spi] = " \
                 CONFIG_SPI_TEGRA144=y \
 "
 
-BALENA_CONFIGS_append_jetson-tx2 = " gamepad"
+BALENA_CONFIGS_append_tegra186 = " gamepad"
 BALENA_CONFIGS[gamepad] = " \
                 CONFIG_JOYSTICK_XPAD=m \
 "
@@ -155,7 +155,7 @@ BALENA_CONFIGS_DEPS[gamepad] = " \
                 CONFIG_USB_ARCH_HAS_HCD=y \
 "
 
-BALENA_CONFIGS_append_jetson-tx2 = " can"
+BALENA_CONFIGS_append_tegra186 = " can"
 BALENA_CONFIGS[can] = " \
                 CONFIG_CAN=m \
                 CONFIG_CAN_RAW=m \
@@ -168,7 +168,7 @@ BALENA_CONFIGS[d3_hdr] = " \
 	CONFIG_D3_IMX390_HDR_ENABLE=y \
 "
 
-BALENA_CONFIGS_append_jetson-tx2 = " gasket"
+BALENA_CONFIGS_append_tegra186 = " gasket"
 BALENA_CONFIGS[gasket] = " \
         CONFIG_STAGING_GASKET_FRAMEWORK=m \
         CONFIG_STAGING_APEX_DRIVER=m \
@@ -251,7 +251,7 @@ KERNEL_ROOTSPEC_jetson-nano = "\${resin_kernel_root} ro rootwait"
 KERNEL_ROOTSPEC_jetson-nano-emmc = "\${resin_kernel_root} ro rootwait"
 KERNEL_ROOTSPEC_jetson-nano-2gb-devkit = "\${resin_kernel_root} ro rootwait"
 KERNEL_ROOTSPEC_jn30b-nano = "\${resin_kernel_root} ro rootwait"
-KERNEL_ROOTSPEC_jetson-tx2 = " \${resin_kernel_root} ro rootwait gasket.dma_bit_mask=32 pcie_aspm=off"
+KERNEL_ROOTSPEC_tegra186 = " \${resin_kernel_root} ro rootwait gasket.dma_bit_mask=32 pcie_aspm=off"
 KERNEL_ROOTSPEC_jetson-tx1 = " \${resin_kernel_root} ro rootwait"
 KERNEL_ROOTSPEC_jetson-xavier = ""
 KERNEL_ROOTSPEC_jetson-xavier-nx-devkit-emmc = ""
@@ -259,7 +259,7 @@ KERNEL_ROOTSPEC_jetson-xavier-nx-devkit-emmc = ""
 # Since 32.1 on tx2, after kernel is loaded sd card becomes mmcblk2 opposed
 # to u-boot where it was 1. This is another cause of failure of
 # previous flasher images.  Use label to distinguish rootfs
-KERNEL_ROOTSPEC_FLASHER_jetson-tx2 = " root=LABEL=flash-rootA ro rootwait flasher gasket.dma_bit_mask=32 pcie_aspm=off"
+KERNEL_ROOTSPEC_FLASHER_tegra186 = " root=LABEL=flash-rootA ro rootwait flasher gasket.dma_bit_mask=32 pcie_aspm=off"
 KERNEL_ROOTSPEC_FLASHER_jetson-tx1 = " root=LABEL=flash-rootA ro rootwait flasher"
 
 generate_extlinux_conf() {

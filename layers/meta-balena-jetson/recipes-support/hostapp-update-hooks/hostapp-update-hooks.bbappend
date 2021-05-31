@@ -37,9 +37,13 @@ XAVIER_NX_HOOKS = " \
 HOSTAPP_HOOKS_append_jetson-xavier-nx-devkit-emmc  = " ${XAVIER_NX_HOOKS}"
 HOSTAPP_HOOKS_append_jetson-xavier-nx-devkit  = " ${XAVIER_NX_HOOKS}"
 
-DEPENDS_append_jetson-tx2 = " tegra186-flash-dry"
+DEPENDS_append_tegra186 = " tegra186-flash-dry"
 
-HOSTAPP_HOOKS_append_jetson-tx2 = " \
+HOSTAPP_HOOKS_append_tegra186 = " \
+    99-resin-uboot \
+    50-resin-bootfiles-jetson-tx2 \
+"
+HOSTAPP_HOOKS_append_jetson-tx2-4gb = " \
     99-resin-uboot \
     50-resin-bootfiles-jetson-tx2 \
 "

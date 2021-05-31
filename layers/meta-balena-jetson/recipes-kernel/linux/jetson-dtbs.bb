@@ -37,6 +37,11 @@ do_install_jetson-tx2() {
 	install -m 0644 ${WORKDIR}/tegra186-tx2-cti-ASG001-revG+.dtb ${D}/boot/tegra186-tx2-cti-ASG001-revG+.dtb
 }
 
+do_install_jetson-tx2-4gb() {
+	install -d ${D}/boot/
+	install -m 0644 ${DEPLOY_DIR_IMAGE}/tegra186-quill-p3489-0888-a00-00-base.dtb ${D}/boot/tegra186-quill-p3489-0888-a00-00-base.dtb
+}
+
 do_install_jetson-nano() {
 	install -d ${D}/boot/
 	install -m 0644 ${DEPLOY_DIR_IMAGE}/tegra210-p3448-0000-p3449-0000-a02.dtb ${D}/boot/tegra210-p3448-0000-p3449-0000-a02.dtb
@@ -69,6 +74,9 @@ FILES_${PN}_jetson-tx2 += " \
 	/boot/tegra186-tx2-blackboard.dtb \
 	/boot/tegra186-quill-p3310-1000-c03-00-base.dtb \
 	/boot/tegra186-tx2-cti-ASG001-revG+.dtb \
+"
+FILES_${PN}_jetson-tx2-4gb += " \
+	/boot/tegra186-quill-p3489-0888-a00-00-base.dtb \
 "
 
 FILES_${PN}_jetson-nano += " \

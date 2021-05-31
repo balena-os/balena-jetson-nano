@@ -70,11 +70,11 @@ BALENA_BOOT_PARTITION_FILES_jetson-xavier = " \
     tegra-binaries/partition_specification194.txt:/bootfiles/partition_specification194.txt \
 "
 
-do_rootfs_balenaos-img_jetson-tx2[depends] += " tegra186-flash-dry:do_deploy \
+do_rootfs_balenaos-img_tegra186[depends] += " tegra186-flash-dry:do_deploy \
                                                virtual/kernel:do_deploy \
 "
 
-BALENA_BOOT_PARTITION_FILES_jetson-tx2 = " \
+BALENA_BOOT_PARTITION_FILES_tegra186 = " \
     boot/extlinux.conf:/extlinux/extlinux.conf \
 "
 
@@ -110,7 +110,7 @@ BALENA_BOOT_SIZE_jetson-nano-emmc = "80960"
 BALENA_BOOT_SIZE_jetson-xavier = "121440"
 BALENA_BOOT_SIZE_jetson-xavier-nx-devkit-emmc = "121440"
 BALENA_BOOT_SIZE_jetson-xavier-nx-devkit = "121440"
-BALENA_BOOT_SIZE_jetson-tx2="80960"
+BALENA_BOOT_SIZE_tegra186="80960"
 BALENA_BOOT_SIZE_jetson-tx1="80960"
 
 PARTITION_TABLE_TYPE = "gpt"
@@ -163,7 +163,7 @@ IMAGE_INSTALL_append_jetson-xavier-nx-devkit = " \
     tegra-udrm-probeconf \
 "
 
-IMAGE_INSTALL_append_jetson-tx2 = " \
+IMAGE_INSTALL_append_tegra186 = " \
     tegra186-flash-dry \
     parted \
     gptfdisk \

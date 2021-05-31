@@ -33,4 +33,4 @@ do_install_append() {
     install -m 755 ${WORKDIR}/nvwifibt-pre.sh  ${D}/${systemd_unitdir}/
 }
 
-COMPATIBLE_MACHINE="(jetson-tx1|jetson-tx2)"
+COMPATIBLE_MACHINE="(jetson-tx1|tegra186)"
