@@ -18,6 +18,14 @@ SRC_URI_append = " \
     file://xhci-ring-Don-t-show-incorrect-WARN-message-about.patch \
 "
 
+# Patches pulled from upstream for crashkernel memory reservation
+# c9ca9b4..764b51e (last patch required minor modifications)
+SRC_URI_append = " \
+    file://0001-memblock-add-memblock_cap_memory_range.patch \
+    file://0002-arm64-limit-memory-regions-based-on-DT-property-usab.patch \
+    file://0003-arm64-kdump-reserve-memory-for-crash-dump-kernel.patch \
+    "
+
 SRC_URI_append_jetson-tx2 = " \
     file://0001-Expose-spidev-to-the-userspace.patch \
     file://0002-mttcan-ivc-enable.patch \
@@ -72,6 +80,13 @@ SRC_URI_append_photon-xavier-nx = " \
 "
 
 TEGRA_INITRAMFS_INITRD = "0"
+
+BALENA_CONFIGS_append = " kdump"
+
+BALENA_CONFIGS[kdump] = " \
+    CONFIG_KEXEC=y \
+    CONFIG_SYSFS=y \
+    "
 
 BALENA_CONFIGS_append = " tegra-wdt-t21x debug_kmemleak "
 

@@ -1,0 +1,151 @@
+From b47b8edcee204ec11320d86ed2a32ea9a01cdec0 Mon Sep 17 00:00:00 2001
+From: AKASHI Takahiro <takahiro.akashi@linaro.org>
+Date: Mon, 3 Apr 2017 11:24:32 +0900
+Subject: [PATCH 3/3] arm64: kdump: reserve memory for crash dump kernel
+
+"crashkernel=" kernel parameter specifies the size (and optionally
+the start address) of the system ram to be used by crash dump kernel.
+reserve_crashkernel() will allocate and reserve that memory at boot time
+of primary kernel.
+
+The memory range will be exposed to userspace as a resource named
+"Crash kernel" in /proc/iomem.
+
+Signed-off-by: AKASHI Takahiro <takahiro.akashi@linaro.org>
+Signed-off-by: Mark Salter <msalter@redhat.com>
+Signed-off-by: Pratyush Anand <panand@redhat.com>
+Reviewed-by: James Morse <james.morse@arm.com>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Reviewed-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/kernel/setup.c |  7 ++++-
+ arch/arm64/mm/init.c      | 66 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 72 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+index cb26694df7f6..facae6e06e1e 100644
+--- a/arch/arm64/kernel/setup.c
++++ b/arch/arm64/kernel/setup.c
+@@ -31,7 +31,6 @@
+ #include <linux/screen_info.h>
+ #include <linux/init.h>
+ #include <linux/kexec.h>
+-#include <linux/crash_dump.h>
+ #include <linux/root_dev.h>
+ #include <linux/cpu.h>
+ #include <linux/interrupt.h>
+@@ -225,6 +224,12 @@ static void __init request_standard_resources(void)
+ 		if (kernel_data.start >= res->start &&
+ 		    kernel_data.end <= res->end)
+ 			request_resource(res, &kernel_data);
++#ifdef CONFIG_KEXEC_CORE
++		/* Userspace will find "Crash kernel" region in /proc/iomem. */
++		if (crashk_res.end && crashk_res.start >= res->start &&
++		    crashk_res.end <= res->end)
++			request_resource(res, &crashk_res);
++#endif
+ 	}
+ }
+ 
+diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+index 794780886b22..a77f7a1dfd5a 100644
+--- a/arch/arm64/mm/init.c
++++ b/arch/arm64/mm/init.c
+@@ -30,6 +30,7 @@
+ #include <linux/gfp.h>
+ #include <linux/memblock.h>
+ #include <linux/sort.h>
++#include <linux/of.h>
+ #include <linux/of_fdt.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/dma-contiguous.h>
+@@ -37,6 +38,7 @@
+ #include <linux/swiotlb.h>
+ #include <linux/vmalloc.h>
+ #include <linux/mm.h>
++#include <linux/kexec.h>
+ 
+ #include <asm/boot.h>
+ #include <asm/fixmap.h>
+@@ -77,6 +79,67 @@ static int __init early_initrd(char *p)
+ early_param("initrd", early_initrd);
+ #endif
+ 
++#ifdef CONFIG_KEXEC_CORE
++/*
++ * reserve_crashkernel() - reserves memory for crash kernel
++ *
++ * This function reserves memory area given in "crashkernel=" kernel command
++ * line parameter. The memory reserved is used by dump capture kernel when
++ * primary kernel is crashing.
++ */
++static void __init reserve_crashkernel(void)
++{
++	unsigned long long crash_base, crash_size;
++	int ret;
++
++	ret = parse_crashkernel(boot_command_line, memblock_phys_mem_size(),
++				&crash_size, &crash_base);
++	/* no crashkernel= or invalid value specified */
++	if (ret || !crash_size)
++		return;
++
++	crash_size = PAGE_ALIGN(crash_size);
++
++	if (crash_base == 0) {
++		/* Current arm64 boot protocol requires 2MB alignment */
++		crash_base = memblock_find_in_range(0, ARCH_LOW_ADDRESS_LIMIT,
++				crash_size, SZ_2M);
++		if (crash_base == 0) {
++			pr_warn("cannot allocate crashkernel (size:0x%llx)\n",
++				crash_size);
++			return;
++		}
++	} else {
++		/* User specifies base address explicitly. */
++		if (!memblock_is_region_memory(crash_base, crash_size)) {
++			pr_warn("cannot reserve crashkernel: region is not memory\n");
++			return;
++		}
++
++		if (memblock_is_region_reserved(crash_base, crash_size)) {
++			pr_warn("cannot reserve crashkernel: region overlaps reserved memory\n");
++			return;
++		}
++
++		if (!IS_ALIGNED(crash_base, SZ_2M)) {
++			pr_warn("cannot reserve crashkernel: base address is not 2MB aligned\n");
++			return;
++		}
++	}
++	memblock_reserve(crash_base, crash_size);
++
++	pr_info("crashkernel reserved: 0x%016llx - 0x%016llx (%lld MB)\n",
++		crash_base, crash_base + crash_size, crash_size >> 20);
++
++	crashk_res.start = crash_base;
++	crashk_res.end = crash_base + crash_size - 1;
++}
++#else
++static void __init reserve_crashkernel(void)
++{
++}
++#endif /* CONFIG_KEXEC_CORE */
++
+ /*
+  * Return the maximum physical address for ZONE_DMA (DMA_BIT_MASK(32)). It
+  * currently assumes that for memory starting above 4G, 32-bit devices will
+@@ -336,6 +399,9 @@ void __init arm64_memblock_init(void)
+ 		arm64_dma_phys_limit = max_zone_dma_phys();
+ 	else
+ 		arm64_dma_phys_limit = PHYS_MASK + 1;
++
++	reserve_crashkernel();
++
+ 	high_memory = __va(memblock_end_of_DRAM() - 1) + 1;
+ 	dma_contiguous_reserve(arm64_dma_phys_limit);
+ 
+-- 
+2.31.1
+

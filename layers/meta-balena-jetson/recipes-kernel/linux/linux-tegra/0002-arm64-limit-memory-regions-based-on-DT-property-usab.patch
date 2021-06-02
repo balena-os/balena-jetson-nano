@@ -1,0 +1,78 @@
+From 5be4cefb2ba661a40c32b20782f7f9a72e94f5f3 Mon Sep 17 00:00:00 2001
+From: AKASHI Takahiro <takahiro.akashi@linaro.org>
+Date: Mon, 3 Apr 2017 11:24:31 +0900
+Subject: [PATCH 2/3] arm64: limit memory regions based on DT property,
+ usable-memory-range
+
+Crash dump kernel uses only a limited range of available memory as System
+RAM. On arm64 kdump, This memory range is advertised to crash dump kernel
+via a device-tree property under /chosen,
+   linux,usable-memory-range = <BASE SIZE>
+
+Crash dump kernel reads this property at boot time and calls
+memblock_cap_memory_range() to limit usable memory which are listed either
+in UEFI memory map table or "memory" nodes of a device tree blob.
+
+Signed-off-by: AKASHI Takahiro <takahiro.akashi@linaro.org>
+Reviewed-by: Geoff Levand <geoff@infradead.org>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Mark Rutland <mark.rutland@arm.com>
+Reviewed-by: Ard Biesheuvel <ard.biesheuvel@linaro.org>
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/mm/init.c | 35 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+
+diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+index 504d327f0f02..794780886b22 100644
+--- a/arch/arm64/mm/init.c
++++ b/arch/arm64/mm/init.c
+@@ -192,10 +192,45 @@ static int __init early_mem(char *p)
+ }
+ early_param("mem", early_mem);
+ 
++static int __init early_init_dt_scan_usablemem(unsigned long node,
++		const char *uname, int depth, void *data)
++{
++	struct memblock_region *usablemem = data;
++	const __be32 *reg;
++	int len;
++
++	if (depth != 1 || strcmp(uname, "chosen") != 0)
++		return 0;
++
++	reg = of_get_flat_dt_prop(node, "linux,usable-memory-range", &len);
++	if (!reg || (len < (dt_root_addr_cells + dt_root_size_cells)))
++		return 1;
++
++	usablemem->base = dt_mem_next_cell(dt_root_addr_cells, &reg);
++	usablemem->size = dt_mem_next_cell(dt_root_size_cells, &reg);
++
++	return 1;
++}
++
++static void __init fdt_enforce_memory_region(void)
++{
++	struct memblock_region reg = {
++		.size = 0,
++	};
++
++	of_scan_flat_dt(early_init_dt_scan_usablemem, &reg);
++
++	if (reg.size)
++		memblock_cap_memory_range(reg.base, reg.size);
++}
++
+ void __init arm64_memblock_init(void)
+ {
+ 	const s64 linear_region_size = -(s64)PAGE_OFFSET;
+ 
++	/* Handle linux,usable-memory-range property */
++	fdt_enforce_memory_region();
++
+ 	/*
+ 	 * Ensure that the linear region takes up exactly half of the kernel
+ 	 * virtual address space. This way, we can distinguish a linear address
+-- 
+2.31.1
+
