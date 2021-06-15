@@ -51,12 +51,13 @@ SRC_URI_append_floyd-nano = " \
 
 SRC_URI_append_jetson-nano = " \
     file://0001-gasket-Backport-gasket-driver-from-linux-coral.patch \
-    file://0001-Enable-SPI1.patch \
+    file://nvidia-platform-t210-enable-SPI0-pins-on-40-pin-head.patch \
 "
 
 SRC_URI_append_jetson-nano-emmc = " \
     file://nano-mark-gpio-as-disabled-when-freed.patch \
     file://0001-gasket-Backport-gasket-driver-from-linux-coral.patch \
+    file://nvidia-platform-t210-enable-SPI0-pins-on-40-pin-head.patch \
 "
 
 SRC_URI_append_photon-nano = " \
