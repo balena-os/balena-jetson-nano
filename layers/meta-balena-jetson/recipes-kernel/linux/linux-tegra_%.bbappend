@@ -46,7 +46,7 @@ SRC_URI_append_jn30b-nano = " \
     file://tegra210-p3448-0002-p3449-0000-b00-jn30b.dtb \
 "
 SRC_URI_append_floyd-nano = " \
-    file://floyd-nano-Port-patches-from-L4T-32.3.1-for-this-DT.patch \
+    file://floyd-nano-Port-32.3.1-Floyd-patches-to-32.5.1.patch \
 "
 
 SRC_URI_append_jetson-nano = " \
