@@ -215,7 +215,7 @@ do_configure() {
     dd if=${DEPLOY_DIR_IMAGE}/bootfiles/slot_metadata.bin of=boot0.img seek=2067456 bs=1 conv=notrunc
     dd if=/dev/zero of=boot0.img seek=2071552 bs=1 count=2122752 conv=notrunc
 
-    # Patch resulting boot0.img to match partition table for L4T 32.4.4
+    # Patch resulting boot0.img to match partition table for L4T 32.5.1
     dd if=${WORKDIR}/${BOOT_BINDIFF} bs=1 seek=557056 count=24 skip=0  of=boot0.img conv=notrunc
     dd if=${WORKDIR}/${BOOT_BINDIFF} bs=1 seek=557444 count=6  skip=24 of=boot0.img conv=notrunc
     dd if=${WORKDIR}/${BOOT_BINDIFF} bs=1 seek=622592 count=24 skip=30 of=boot0.img conv=notrunc
