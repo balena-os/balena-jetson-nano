@@ -47,59 +47,7 @@
             <description> **Required.** Contains a redundant copy of the TegraBoot
               binary. </description>
         </partition>
-
-        <partition name="UBENV" type="data">
-            <allocation_policy> sequential </allocation_policy>
-            <filesystem_type> basic </filesystem_type>
-            <start_location> 0x3D8000 </start_location>
-            <size> 32768 </size>
-            <file_system_attribute> 0 </file_system_attribute>
-            <allocation_attribute> 8 </allocation_attribute>
-            <percent_reserved> 0 </percent_reserved>
-            <description> **Required.** Reserved for U-Boot environment. </description>
-        </partition>
-
-        <partition name="VER_b" type="data">
-            <allocation_policy> sequential </allocation_policy>
-            <filesystem_type> basic </filesystem_type>
-            <start_location> 0x3E0000 </start_location>
-            <size> 32768 </size>
-            <file_system_attribute> 0 </file_system_attribute>
-            <partition_attribute> 0 </partition_attribute>
-            <allocation_attribute> 8 </allocation_attribute>
-            <percent_reserved> 0 </percent_reserved>
-            <filename> VERFILE </filename>
-            <description>  **Required.** Contains a redundant copy of BSP version
-              information. </description>
-        </partition>
-
-        <partition name="VER" type="data">
-            <allocation_policy> sequential </allocation_policy>
-            <filesystem_type> basic </filesystem_type>
-            <start_location> 0x3F0000 </start_location>
-            <size> 32768 </size>
-            <file_system_attribute> 0 </file_system_attribute>
-            <partition_attribute> 0 </partition_attribute>
-            <allocation_attribute> 8 </allocation_attribute>
-            <percent_reserved> 0 </percent_reserved>
-            <filename> VERFILE </filename>
-            <description>  **Required.** Contains BSP version information. </description>
-        </partition>
-
-    </device>
-    <device type="sdcard" instance="0">
-        <partition name="GP1" type="GP1">
-            <allocation_policy> sequential </allocation_policy>
-            <filesystem_type> basic </filesystem_type>
-            <size> 2097152 </size>
-            <file_system_attribute> 0 </file_system_attribute>
-            <allocation_attribute> 8 </allocation_attribute>
-            <percent_reserved> 0 </percent_reserved>
-            <description> **Required.** Contains primary GPT of the `sdcard` device. All
-              partitions defined after this entry are configured in the kernel, and are accessible
-              by standard partition tools such as gdisk and parted. </description>
-        </partition>
-        <partition name="TXC" id="2" type="TBCTYPE">
+	<partition name="TXC" type="TBCTYPE">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
             <size> 131072 </size>
@@ -113,7 +61,7 @@
         <partition name="RP1" type="data">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 917504 </size>
+            <size> 327680 </size>
             <file_system_attribute> 0 </file_system_attribute>
             <allocation_attribute> 0x8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
@@ -124,7 +72,7 @@
         <partition name="EBT" type="bootloader">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 917504 </size>
+            <size> 589824 </size>
             <file_system_attribute> 0 </file_system_attribute>
             <allocation_attribute> 8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
@@ -136,7 +84,7 @@
         <partition name="WX0" type="WB0TYPE">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 131072 </size>
+            <size> 65536 </size>
             <file_system_attribute> 0 </file_system_attribute>
             <allocation_attribute> 8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
@@ -159,23 +107,13 @@
         <partition name="BXF-DTB" type="data">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 393216 </size>
+            <size> 65536 </size>
             <file_system_attribute> 0 </file_system_attribute>
             <allocation_attribute> 8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
             <filename> BPFDTB-FILE </filename>
-            <description> **Optional.** Reserved for future use by BPMP DTB binary; can't remove. </description>
-        </partition>
-
-        <partition name="FX" type="FBTYPE">
-            <allocation_policy> sequential </allocation_policy>
-            <filesystem_type> basic </filesystem_type>
-            <size> 65536 </size>
-            <file_system_attribute> 0 </file_system_attribute>
-            <allocation_attribute> 0x8 </allocation_attribute>
-            <percent_reserved> 0 </percent_reserved>
-            <filename> FBFILE </filename>
-            <description> **Optional.** Reserved for fuse bypass; removeable. </description>
+            <description> **Optional.** Reserved for future use by BPMP DTB binary;
+              can't remove. </description>
         </partition>
 
         <partition name="TXS" type="data">
@@ -193,7 +131,7 @@
         <partition name="DXB" type="data">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 917504 </size>
+            <size> 327680 </size>
             <file_system_attribute> 0 </file_system_attribute>
             <allocation_attribute> 0x8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
@@ -204,7 +142,7 @@
         <partition name="LNX" type="data">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 917504 </size>
+            <size> 753664 </size>
             <file_system_attribute> 0 </file_system_attribute>
             <allocation_attribute> 0x8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
@@ -228,7 +166,7 @@
         <partition name="BMP" type="data">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 81920 </size>
+            <size> 196608 </size>
             <file_system_attribute> 0 </file_system_attribute>
             <allocation_attribute> 0x8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
@@ -245,54 +183,57 @@
             <allocation_attribute> 0x8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
             <filename> rp4.blob </filename>
-            <description> **Required.** Contains XUSB module’s firmware file, making XUSB
+            <description> **Required.** Contains XUSB firmware file, making XUSB
               a true USB 3.0 compliant host controller. </description>
         </partition>
 
-        <partition name="resin-boot" type="data">
+	<partition name="UBENV" type="data">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 83886080 </size>
+            <start_location> 0x3D8000 </start_location>
+            <size> 32768 </size>
             <file_system_attribute> 0 </file_system_attribute>
-            <allocation_attribute> 0x8 </allocation_attribute>
+            <allocation_attribute> 8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
-            <filename> resin-boot.img </filename>
+	    <description> **Required.** Reserved for U-Boot environment. </description>
         </partition>
-        <partition name="resin-rootA" type="data">
+	<partition name="VER_b" type="data">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 1019122176 </size>
+            <start_location> 0x3E0000 </start_location>
+            <size> 32768 </size>
             <file_system_attribute> 0 </file_system_attribute>
-            <allocation_attribute> 0x8 </allocation_attribute>
+	    <partition_attribute> 0 </partition_attribute>
+            <allocation_attribute> 8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
-            <filename> resin-rootA.img </filename>
+            <filename> VERFILE </filename>
+	    <description> **Required.** Contains a redundant copy of BSP version
+              information. </description>
         </partition>
-        <partition name="resin-rootB" type="data">
+	<partition name="VER" type="data">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 1019122176 </size>
+	    <start_location> 0x3F0000 </start_location>
+            <size> 32768 </size>
             <file_system_attribute> 0 </file_system_attribute>
-            <allocation_attribute> 0x8 </allocation_attribute>
+	    <partition_attribute> 0 </partition_attribute>
+            <allocation_attribute> 8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
-            <filename> resin-rootB.img </filename>
+            <filename> VERFILE </filename>
+	    <description> **Required.** Contains BSP version information. </description>
         </partition>
-        <partition name="resin-state" type="data">
+    </device>
+    <device type="sdcard" instance="0">
+        <partition name="GP1" type="GP1">
             <allocation_policy> sequential </allocation_policy>
             <filesystem_type> basic </filesystem_type>
-            <size> 1019122176 </size>
+            <size> 2097152 </size>
             <file_system_attribute> 0 </file_system_attribute>
-            <allocation_attribute> 0x8 </allocation_attribute>
+            <allocation_attribute> 8 </allocation_attribute>
             <percent_reserved> 0 </percent_reserved>
-            <filename> resin-state.img </filename>
-        </partition>
-        <partition name="resin-data" type="data">
-            <allocation_policy> sequential </allocation_policy>
-            <filesystem_type> basic </filesystem_type>
-            <size> 2019122176 </size>
-            <file_system_attribute> 0 </file_system_attribute>
-            <allocation_attribute> 0x8 </allocation_attribute>
-            <percent_reserved> 0 </percent_reserved>
-            <filename>resin-data.img</filename>
+	    <description> **Required.** Contains primary GPT of the `sdcard` device. All
+              partitions defined after this entry are configured in the kernel, and are accessible
+              by standard partition tools such as gdisk and parted. </description>
         </partition>
         <partition name="GPT" type="GPT">
             <allocation_policy> sequential </allocation_policy>
