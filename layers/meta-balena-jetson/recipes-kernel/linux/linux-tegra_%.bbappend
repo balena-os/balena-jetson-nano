@@ -264,6 +264,12 @@ KERNEL_ROOTSPEC_FLASHER_jetson-tx1 = " root=LABEL=flash-rootA ro rootwait flashe
 KERNEL_ROOTSPEC_append="${L4TVER}"
 KERNEL_ROOTSPEC_FLASHER_append="${L4TVER}"
 
+# The TX2 NX doesn't boot if FDT specifies a DTB,
+# even if it's the unmodified dtb of this device type, see:
+# https://forums.developer.nvidia.com/t/jetpack-4-5-1-silent-panic-when-booting-with-kernel-patch/180200/12
+EXTLINUX_FDT="FDT default"
+EXTLINUX_FDT_jetson-tx2-nx-devkit=""
+
 generate_extlinux_conf() {
     install -d ${D}/${KERNEL_IMAGEDEST}/extlinux
     rm -f ${D}/${KERNEL_IMAGEDEST}/extlinux/extlinux.conf
@@ -274,7 +280,7 @@ MENU TITLE Boot Options
 LABEL primary
       MENU LABEL primary ${KERNEL_IMAGETYPE}
       LINUX /${KERNEL_IMAGETYPE}
-      FDT default
+      ${EXTLINUX_FDT}
       APPEND \${cbootargs} ${kernelRootspec} \${os_cmdline} sdhci_tegra.en_boot_part_access=1
 EOF
     kernelRootspec="${KERNEL_ROOTSPEC_FLASHER}" ; cat >${D}/${KERNEL_IMAGEDEST}/extlinux/extlinux.conf_flasher << EOF
