@@ -1,18 +1,21 @@
-From b1a371337582e367de6175d3d2e7d90f730af1a8 Mon Sep 17 00:00:00 2001
+From 73551c15c534382bc64e17cd1afd01c797b0d299 Mon Sep 17 00:00:00 2001
 From: Alexandru Costache <alexandru@balena.io>
 Date: Thu, 27 May 2021 13:30:46 +0200
 Subject: [PATCH] Integrate with Balena u-boot environment
 
 Integrate tx2 on L4T 32.4.2 with Balena u-boot env
 
+This applies to the TX2, TX2 4GB and TX2 NX
+
 Upstream-Status: Inappropriate [configuration]
 Signed-off-by: Alexandru Costache <alexandru@balena.io>
 ---
  configs/p2771-0000-500_defconfig    | 24 ++++++++++++++--------
+ configs/p3636-0001_defconfig        | 12 +++++++++--
  include/config_distro_bootcmd.h     | 31 +++++++++++++++++++++++++++--
  include/configs/p2771-0000.h        |  3 ---
  include/configs/tegra-common-post.h |  5 +----
- 4 files changed, 46 insertions(+), 17 deletions(-)
+ 5 files changed, 56 insertions(+), 19 deletions(-)
 
 diff --git a/configs/p2771-0000-500_defconfig b/configs/p2771-0000-500_defconfig
 index d6c17db615..ef29d6c072 100644
@@ -55,6 +58,40 @@ index d6c17db615..ef29d6c072 100644
  CONFIG_CMD_CACHE=y
 -CONFIG_NVME=y
 +#CONFIG_NVME=y
++CONFIG_CMD_PART=y
++CONFIG_PARTITION_UUIDS=y
++CONFIG_CMD_IMPORTENV=y
++CONFIG_CMD_FAT=y
++CONFIG_ENV_IS_NOWHERE=y
++CONFIG_CMD_FS_UUID=y
++CONFIG_CMD_EXPORTENV=y
++CONFIG_CMD_EDITENV=y
+diff --git a/configs/p3636-0001_defconfig b/configs/p3636-0001_defconfig
+index bbab56e889..80564d4066 100644
+--- a/configs/p3636-0001_defconfig
++++ b/configs/p3636-0001_defconfig
+@@ -1,7 +1,7 @@
+ CONFIG_ARM=y
+ CONFIG_TEGRA=y
+ CONFIG_SYS_TEXT_BASE=0x80080000
+-CONFIG_ENV_SIZE=0x2000
++CONFIG_ENV_SIZE=0x3000
+ CONFIG_ENV_OFFSET=0xFFFFE000
+ CONFIG_NR_DRAM_BANKS=1026
+ CONFIG_TEGRA186=y
+@@ -18,7 +18,7 @@ CONFIG_CMD_MMC=y
+ CONFIG_CMD_PCI=y
+ CONFIG_CMD_SPI=y
+ CONFIG_CMD_USB=y
+-# CONFIG_CMD_SETEXPR is not set
++CONFIG_CMD_SETEXPR is not set
+ # CONFIG_CMD_NFS is not set
+ CONFIG_CMD_EXT4_WRITE=y
+ CONFIG_DEFAULT_DEVICE_TREE="tegra186-p3636-0001"
+@@ -41,3 +41,11 @@ CONFIG_POSITION_INDEPENDENT=y
+ CONFIG_BOOTP_PREFER_SERVERIP=y
+ CONFIG_CMD_CACHE=y
+ CONFIG_NVME=y
 +CONFIG_CMD_PART=y
 +CONFIG_PARTITION_UUIDS=y
 +CONFIG_CMD_IMPORTENV=y
