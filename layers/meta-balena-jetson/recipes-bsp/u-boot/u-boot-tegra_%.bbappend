@@ -36,6 +36,8 @@ TEGRA_BOARD_FDT_FILE_n510-tx2="tegra186-tx2-aetina-n510-p3489-0888-a00-00-base.d
 TEGRA_BOARD_FDT_FILE_n310-tx2="tegra186-tx2-aetina-n310-p3489-0888-a00-00-base.dtb"
 TEGRA_BOARD_FDT_FILE_blackboard-tx2="tegra186-tx2-blackboard.dtb"
 TEGRA_BOARD_FDT_FILE_jetson-tx2="tegra186-quill-p3310-1000-c03-00-base.dtb"
+TEGRA_BOARD_FDT_FILE_jetson-tx2-4gb="tegra186-quill-p3489-0888-a00-00-base.dtb"
+TEGRA_BOARD_FDT_FILE_jetson-tx2-nx-devkit="tegra186-p3636-0001-p3509-0000-a01.dtb"
 TEGRA_BOARD_FDT_FILE_astro-tx2="tegra186-tx2-cti-ASG001-revG+.dtb"
 TEGRA_BOARD_FDT_FILE_floyd-nano = "tegra210-p3448-0002-p3449-0000-b00-floyd-nano.dtb"
 
@@ -79,10 +81,9 @@ BALENA_DEFAULT_ROOT_PART_jetson-tx2 = "0x19"
 
 SRC_URI_append_jetson-tx2 = " \
     file://Add-part-index-command.patch \
-    file://tx2-Integrate-with-Balena-u-boot-environment.patch \
     file://tx2-remove-vpr-carveout-on-rollback.patch \
+    file://tx2-Integrate-with-Balena-u-boot-environment.patch \
 "
-
 
 BALENA_BOOT_PART_jetson-tx1 = "0xB"
 BALENA_DEFAULT_ROOT_PART_jetson-tx1 = "0xC"
