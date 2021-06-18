@@ -4,14 +4,20 @@ UBOOT_KCONFIG_SUPPORT = "1"
 
 inherit resin-u-boot
 
-# We pin to the release in 32.4.4 branch - as of 12 Jan 2021
-# to ensure we don't get updates that might break the build
-# or booting in general.
-SRCREV = "24abfbe6dbdb758be8d0ab0da457aa2af07ba55a"
-
 LIC_FILES_CHKSUM = "\
     file://Licenses/README;md5=5a7450c57ffe5ae63fd732446b988025 \
 "
+
+# The u-boot version 2021.01 from
+# meta-tegra doesn't work well when
+# booting with custom device trees, even
+# if it's the same dt that's written
+# in the bootblob or in the dtb partitions.
+# Let's switch to using the Nvidia u-boot.
+SRCBRANCH="l4t/l4t-r32.5-v2020.04"
+SRCREV="6b630d64fd86beec3efb3312581c50ee8e23a05b"
+
+LIC_FILES_CHKSUM="file://Licenses/README;md5=30503fd321432fc713238f582193b78e"
 
 BALENA_BOOT_PART_jetson-nano = "0xC"
 BALENA_DEFAULT_ROOT_PART_jetson-nano = "0xD"
@@ -30,6 +36,8 @@ TEGRA_BOARD_FDT_FILE_n510-tx2="tegra186-tx2-aetina-n510-p3489-0888-a00-00-base.d
 TEGRA_BOARD_FDT_FILE_n310-tx2="tegra186-tx2-aetina-n310-p3489-0888-a00-00-base.dtb"
 TEGRA_BOARD_FDT_FILE_blackboard-tx2="tegra186-tx2-blackboard.dtb"
 TEGRA_BOARD_FDT_FILE_jetson-tx2="tegra186-quill-p3310-1000-c03-00-base.dtb"
+TEGRA_BOARD_FDT_FILE_jetson-tx2-4gb="tegra186-quill-p3489-0888-a00-00-base.dtb"
+TEGRA_BOARD_FDT_FILE_jetson-tx2-nx-devkit="tegra186-p3636-0001-p3509-0000-a01.dtb"
 TEGRA_BOARD_FDT_FILE_astro-tx2="tegra186-tx2-cti-ASG001-revG+.dtb"
 TEGRA_BOARD_FDT_FILE_floyd-nano = "tegra210-p3448-0002-p3449-0000-b00-floyd-nano.dtb"
 
@@ -45,8 +53,9 @@ SRC_URI_append = " file://local-resin-specific-env-integration-kconfig.patch "
 # for all boards that use u-boot
 SRC_URI_append = " \
     file://menu-Use-default-menu-entry-from-extlinux.conf.patch \
-    file://sysboot-read-custom-fdt-from-env.patch \
     file://0001-add-back-config-defaults.patch \
+    file://sysboot-read-custom-fdt-from-env.patch \
+    file://include-configs-Don-t-copy-bootargs-fdt-carveout.patch \
 "
 
 # Uses sd-card defconfig
@@ -72,6 +81,7 @@ BALENA_DEFAULT_ROOT_PART_jetson-tx2 = "0x19"
 
 SRC_URI_append_jetson-tx2 = " \
     file://Add-part-index-command.patch \
+    file://tx2-remove-vpr-carveout-on-rollback.patch \
     file://tx2-Integrate-with-Balena-u-boot-environment.patch \
 "
 

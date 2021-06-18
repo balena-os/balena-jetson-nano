@@ -1,4 +1,4 @@
-SUMMARY = "Create flash artifacts without flashing the Jetson NX Devkit SD-CARD"
+SUMMARY = "Create flash artifacts without flashing the Jetson NX Devkit eMMC"
 
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${BALENA_COREBASE}/COPYING.Apache-2.0;md5=89aea4e17d99a7cacdbeed46a0096b10"
@@ -13,21 +13,22 @@ DEPENDS = " \
     tegra-bootfiles \
     tegra194-flashtools-native \
     dtc-native \
+    virtual/bootlogo \
     "
 
 inherit deploy python3native perlnative
 
-BOOT_BINDIFF="boot0_t194_nx_sd.bindiff"
+BOOT_BINDIFF="boot0_t194_nx_emmc.bindiff"
 
 SRC_URI = " \
-    file://resinOS-flash194_nxde_sdcard.xml \
-    file://partition_specification194_nxde_sdcard.txt \
-    file://boot0_t194_nx_sd.bindiff \
+    file://resinOS-flash194_nxde.xml \
+    file://partition_specification194_nxde.txt \
+    file://${BOOT_BINDIFF} \
 "
 
-FLASHXML = "resinOS-flash194_nxde_sdcard.xml"
+FLASHXML = "resinOS-flash194_nxde.xml"
 DTBNAME = "tegra194-p3668-all-p3509-0000"
-DTBNAME_jetson-xavier-nx-devkit-seeed-2mic-hat = "tegra194-p3668-all-p3509-0000-seeed-2mic-hat"
+DTBNAME_photon-xavier-nx = "tegra194-xavier-nx-cti-NGX003"
 KERNEL_DEVICETREE = "${DEPLOY_DIR_IMAGE}/${DTBNAME}.dtb"
 DTBFILE ?= "${@os.path.basename(d.getVar('KERNEL_DEVICETREE', True).split()[0])}"
 LNXSIZE ?= "67108864"
@@ -48,7 +49,6 @@ ROOTB_ARGS="root=LABEL=resin-rootB ro rootwait rootfstype=ext4 ${KERNEL_ARGS} ${
 
 BOOTFILES = "\
     adsp-fw.bin \
-    bmp.blob \
     bpmp_t194.bin \
     camera-rtcpu-rce.img \
     eks.img \
@@ -107,42 +107,40 @@ signfile() {
         -e"s,TBCDTB-FILE,${DTBFILE}," \
         -e"s,CAMERAFW,camera-rtcpu-rce.img," \
         -e"s,SPEFILE,spe_t194.bin," \
-        -e"s,VERFILE,bsp_version," \
+	-e"s,VERFILE,bsp_version," \
         -e"s,WB0BOOT,warmboot_t194_prod.bin," \
         -e"s,TOSFILE,tos-trusty_t194.img," \
         -e"s,EKSFILE,eks.img," \
         -e"s, DTB_FILE, ${DTBFILE}," \
         -e"s,CBOOTOPTION_FILE,cbo.dtb," \
-        -e"s,RECNAME,recovery," \
-        -e"s,RECSIZE,66060288," \
-        -e"s,RECDTB-NAME,recovery-dtb," \
-        -e"s,BOOTCTRLNAME,kernel-bootctrl," \
+        -e"s,RECNAME,recovery," -e"s,RECSIZE,66060288," -e"s,RECDTB-NAME,recovery-dtb," -e"s,BOOTCTRLNAME,kernel-bootctrl," \
         -e"/RECFILE/d" -e"/RECDTB-FILE/d" -e"/BOOTCTRL-FILE/d" \
         > $destdir/flash.xml
+
 
      tegraflashpy=$(which tegraflash.py)
 
      python3 $tegraflashpy --bl nvtboot_recovery_cpu_t194.bin \
-        --sdram_config tegra194-mb1-bct-memcfg-p3668-0001-a00.cfg,tegra194-memcfg-sw-override.cfg  \
-        --odmdata 0xB8190000 \
-        --applet mb1_t194_prod.bin \
-        --cmd "sign$1" \
-        --soft_fuses tegra194-mb1-soft-fuses-l4t.cfg  \
-        --cfg flash.xml \
-        --chip 0x19 \
-        --device_config tegra19x-mb1-bct-device-qspi-p3668.cfg \
-        --misc_cold_boot_config tegra194-mb1-bct-misc-l4t.cfg \
-        --misc_config tegra194-mb1-bct-misc-flash.cfg \
-        --pinmux_config tegra19x-mb1-pinmux-p3668-a01.cfg \
-        --gpioint_config tegra194-mb1-bct-gpioint-p3668-0001-a00.cfg \
-        --pmic_config tegra194-mb1-bct-pmic-p3668-0001-a00.cfg \
-        --pmc_config tegra19x-mb1-padvoltage-p3668-a01.cfg \
-        --prod_config tegra19x-mb1-prod-p3668-0001-a00.cfg \
-        --scr_config tegra194-mb1-bct-scr-cbb-mini-p3668.cfg \
-        --scr_cold_boot_config tegra194-mb1-bct-scr-cbb-mini-p3668.cfg \
-        --br_cmd_config tegra194-mb1-bct-reset-p3668-0001-a00.cfg \
-        --dev_params tegra194-br-bct-qspi.cfg \
-        --bin "${bins}"
+     --sdram_config tegra194-mb1-bct-memcfg-p3668-0001-a00.cfg,tegra194-memcfg-sw-override.cfg  \
+     --odmdata 0xB8190000 \
+     --applet mb1_t194_prod.bin \
+     --cmd "sign$1" \
+     --soft_fuses tegra194-mb1-soft-fuses-l4t.cfg  \
+     --cfg flash.xml \
+     --chip 0x19 \
+     --device_config tegra19x-mb1-bct-device-qspi-p3668.cfg \
+     --misc_cold_boot_config tegra194-mb1-bct-misc-l4t.cfg \
+     --misc_config tegra194-mb1-bct-misc-flash.cfg \
+     --pinmux_config tegra19x-mb1-pinmux-p3668-a01.cfg \
+     --gpioint_config tegra194-mb1-bct-gpioint-p3668-0001-a00.cfg \
+     --pmic_config tegra194-mb1-bct-pmic-p3668-0001-a00.cfg \
+     --pmc_config tegra19x-mb1-padvoltage-p3668-a01.cfg \
+     --prod_config tegra19x-mb1-prod-p3668-0001-a00.cfg \
+     --scr_config tegra194-mb1-bct-scr-cbb-mini-p3668.cfg \
+     --scr_cold_boot_config tegra194-mb1-bct-scr-cbb-mini-p3668.cfg \
+     --br_cmd_config tegra194-mb1-bct-reset-p3668-0001-a00.cfg \
+     --dev_params tegra194-br-bct-qspi.cfg \
+     --bin "${bins}"
 }
 
 do_configure() {
@@ -160,8 +158,10 @@ do_configure() {
     ln -s "${DEPLOY_DIR_IMAGE}/cboot-${MACHINE}.bin" ./cboot_t194.bin
     ln -s "${DEPLOY_DIR_IMAGE}/tos-${MACHINE}.img" ./tos-trusty_t194.img
 
+    cp "${DEPLOY_DIR_IMAGE}/bootlogo-${MACHINE}.blob" ./bmp.blob
     mkdir -p ${DEPLOY_DIR_IMAGE}/bootfiles
     cp ./cboot_t194.bin ${DEPLOY_DIR_IMAGE}/bootfiles/
+    cp ./bmp.blob ${DEPLOY_DIR_IMAGE}/bootfiles/
 
     for f in ${BOOTFILES}; do
         ln -s "${STAGING_DATADIR}/tegraflash/$f" .
@@ -189,7 +189,7 @@ do_configure() {
     fi
     export boardcfg
 
-    sed -i -e "s/\[DTBNAME\]/${DTBNAME}/g" ${WORKDIR}/partition_specification194_nxde_sdcard.txt
+    sed -i -e "s/\[DTBNAME\]/${DTBNAME}/g" ${WORKDIR}/partition_specification194_nxde.txt
 
     ln -s ${STAGING_BINDIR_NATIVE}/tegra186-flash .
 
@@ -215,7 +215,7 @@ do_configure() {
     bldtbchosenargs="console=ttyTCU0,115200"
     bldtbdtsname="/dvs/git/dirty/git-master_linux/kernel/kernel-4.9/arch/arm64/boot/dts/../../../../../../hardware/nvidia/platform/t19x/jakku/kernel-dts/tegra194-p3668-all-p3509-0000.dts"
 
-    # Do not overide this hardcoded dtb for any carrier boards, because it is used for bldtb in boot0.img
+    # Do not overide this hardcoded dtb for carrier boards, this is used for bldtb in boot0.img
     fdtput -t s ./tegra194-p3668-all-p3509-0000.dtb / "nvidia,dtsfilename" $bldtbdtsname
     fdtput -t s ./tegra194-p3668-all-p3509-0000.dtb /chosen bootargs $bldtbchosenargs
 
@@ -241,6 +241,9 @@ do_configure() {
     ln -sf ${STAGING_BINDIR_NATIVE}/tegra186-flash/${SOC_FAMILY}-flash-helper.sh ./
     ln -sf ${STAGING_BINDIR_NATIVE}/tegra186-flash/tegraflash.py ./
 
+    # bup is based on the rootfs, which is not built at this point
+    # not using it for the moment
+    # sed -e 's,^function ,,' ${STAGING_BINDIR_NATIVE}/tegra186-flash/l4t_bup_gen.func > ./l4t_bup_gen.func
     rm -rf signed
 
     # Sign all tegra bins
@@ -336,8 +339,8 @@ do_configure() {
     #dd if=${DEPLOY_DIR_IMAGE}/bootfiles/cbo.dtb seek=33161216 bs=1 conv=notrunc
     #dd if=${DEPLOY_DIR_IMAGE}/bootfiles/cbo.dtb seek=33226752 bs=1 conv=notrunc
 
-    # For the 32.4.4 release, /opt/tegra-binaries/boot0.img MD5 should be 53a472b624645c570ed14635b4c6a8f2
-    # even for carrier boards. If it is not, then board will not boot after HUP.
+    # For 32.5.1 /opt/tegra-binaries/boot0.img MD5 should have the same MD5
+    # even for carrier boards. If it isn't then board won't boot after HUP.
     cp ${WORKDIR}/${BOOT_BINDIFF} .
     dd if=${BOOT_BINDIFF} of=boot0.img seek=14942224 bs=1 count=32 conv=notrunc
     dd if=${BOOT_BINDIFF} of=boot0.img seek=14945200 skip=32  bs=1 count=80 conv=notrunc
@@ -374,7 +377,7 @@ do_install() {
     cp -r ${S}/tegraflash/signed/* ${D}/${BINARY_INSTALL_PATH}
 
     cp ${S}/tegraflash/${DTBNAME}-rootA.dtb ${D}/${BINARY_INSTALL_PATH}/
-    cp ${WORKDIR}/partition_specification194_nxde_sdcard.txt ${D}/${BINARY_INSTALL_PATH}/
+    cp ${WORKDIR}/partition_specification194_nxde.txt ${D}/${BINARY_INSTALL_PATH}/
     cp -r ${S}/tegraflash/${DTBNAME}-root*sigheader.dtb.encrypt ${D}/${BINARY_INSTALL_PATH}
     cp ${S}/tegraflash/boot0.img ${D}/${BINARY_INSTALL_PATH}
     # When generating image, this will be default dtb containing cmdline with root set to resin-rootA
@@ -412,4 +415,4 @@ do_populate_lic[depends] += "tegra-binaries:do_unpack"
 
 addtask do_deploy before do_package after do_install
 
-COMPATIBLE_MACHINE = "jetson-xavier-nx-devkit"
+COMPATIBLE_MACHINE = "jetson-xavier-nx-devkit-emmc"

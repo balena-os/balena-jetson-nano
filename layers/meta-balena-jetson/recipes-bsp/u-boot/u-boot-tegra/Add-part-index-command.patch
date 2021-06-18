@@ -1,6 +1,6 @@
-From a4bb9c3af9d156c5bb296bc735ff5a76f69ee412 Mon Sep 17 00:00:00 2001
+From 7e12e527f8b1b407029f0aee0ad31247ccf6f5d3 Mon Sep 17 00:00:00 2001
 From: Alexandru Costache <alexandru@balena.io>
-Date: Mon, 11 Jan 2021 10:41:04 +0100
+Date: Thu, 27 May 2021 13:28:06 +0200
 Subject: [PATCH] Create command to extract partition index by name
 
   This command is useful for extracting partition index
@@ -8,16 +8,16 @@ Subject: [PATCH] Create command to extract partition index by name
   resin-boot.
 
 Upstream-Status: Inappropriate [configuration]
-Signed-off-by: Alexandru Costache <alexandru@balena.io
+Signed-off-by: Alexandru Costache <alexandru@balena.io>
 ---
- cmd/part.c | 36 ++++++++++++++++++++++++++++++++++++
- 1 file changed, 36 insertions(+)
+ cmd/part.c | 38 +++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 37 insertions(+), 1 deletion(-)
 
 diff --git a/cmd/part.c b/cmd/part.c
-index 3395c17b89..0f3bb4fb2f 100644
+index 5e4e45ca6d..636aa4dcfe 100644
 --- a/cmd/part.c
 +++ b/cmd/part.c
-@@ -182,6 +182,38 @@ static int do_part_number(int argc, char *const argv[])
+@@ -182,6 +182,39 @@ static int do_part_number(int argc, char * const argv[])
  	return do_part_info(argc, argv, CMD_PART_INFO_NUMBER);
  }
  
@@ -53,22 +53,24 @@ index 3395c17b89..0f3bb4fb2f 100644
 +        return 0;
 +}
 +
- static int do_part_types(int argc, char * const argv[])
++
+ static int do_part(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
  {
- 	struct part_driver *drv = ll_entry_start(struct part_driver,
-@@ -220,6 +252,8 @@ static int do_part(struct cmd_tbl *cmdtp, int flag, int argc,
+ 	if (argc < 2)
+@@ -197,7 +230,8 @@ static int do_part(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+ 		return do_part_size(argc - 2, argv + 2);
+ 	else if (!strcmp(argv[1], "number"))
  		return do_part_number(argc - 2, argv + 2);
- 	else if (!strcmp(argv[1], "types"))
- 		return do_part_types(argc - 2, argv + 2);
+-
 +        else if (!strcmp(argv[1], "index"))
 +                return do_part_index(argc - 2, argv + 2);
  	return CMD_RET_USAGE;
  }
  
-@@ -246,4 +280,6 @@ U_BOOT_CMD(
- 	"      part must be specified as partition name\n"
- 	"part types\n"
- 	"    - list supported partition table types"
+@@ -222,4 +256,6 @@ U_BOOT_CMD(
+ 	"part number <interface> <dev> <part> <varname>\n"
+ 	"    - set environment variable to the partition number using the partition name\n"
+ 	"      part must be specified as partition name"
 +        "\npart index <interface> <dev> <partname> <varname>\n"
 +        "    - save index of partname in varname\n"
  );

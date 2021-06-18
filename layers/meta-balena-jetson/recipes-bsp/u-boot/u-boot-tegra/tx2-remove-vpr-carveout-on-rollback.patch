@@ -1,0 +1,60 @@
+From 1deffd31faf65ec7007812ced30a1dc5d1c02751 Mon Sep 17 00:00:00 2001
+From: Alexandru Costache <alexandru@balena.io>
+Date: Sun, 30 May 2021 19:33:14 +0200
+Subject: [PATCH] tx2: Avoid kernel panic on altboot
+
+By default cboot alters some nodes of the dtb
+passed to u-boot, and overrides the dtb
+loaded by extlinux. If booting a 32.4.4 kernel
+with the 2020.04 upstream u-boot, like in the
+case of a rollback, these cboot changes cause a kernel
+panic in the arm-smmu driver. We noticed that
+if we don't allow vpr-carveout to be replaced
+with the one provided by cboot this crash
+is no longer present, and we can rollback
+safely.
+
+Upstream-status: Inappropriate [configuration]
+Signed-off-by: Alexandru Costache <alexandru@balena.io>
+---
+ cmd/pxe_utils.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/cmd/pxe_utils.c b/cmd/pxe_utils.c
+index 922ca28657..0f82bd38f3 100644
+--- a/cmd/pxe_utils.c
++++ b/cmd/pxe_utils.c
+@@ -410,6 +410,7 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
+ 	if ((label->ipappend & 0x3) || label->append) {
+ 		char bootargs[CONFIG_SYS_CBSIZE] = "";
+ 		char finalbootargs[CONFIG_SYS_CBSIZE];
++		char *pos, *fdt_del_copy, delete[] = ":/reserved-memory/vpr-carveout";
+ 
+ 		if (strlen(label->append ?: "") +
+ 		    strlen(ip_str) + strlen(mac_str) + 1 > sizeof(bootargs)) {
+@@ -429,6 +430,22 @@ static int label_boot(cmd_tbl_t *cmdtp, struct pxe_label *label)
+ 		cli_simple_process_macros(bootargs, finalbootargs);
+ 		env_set("bootargs", finalbootargs);
+ 		printf("append: %s\n", finalbootargs);
++
++		// Avoid kernel panic if booting the L4T 32.4.4 kernel with the 32.5.1 u-boot
++		if (!strstr(finalbootargs, "l4tver=32.5.1")) {
++		    printf("Booting an L4T older than 32.5.1 in altboot mode, remove vpr-carveout\n");
++		    fdt_del_copy=env_get("fdt_del_copy_node_paths");
++		    pos = strstr(fdt_del_copy, delete);
++
++		    if (pos) {
++			memset(pos, ' ', strlen(delete));
++		    } else {
++			printf("vpr_carveout not found in replace carveout list");
++		    }
++		} else {
++		    printf("Booting l4t 32.5.1, no need to replace elements in carveout list\n");
++		}
++
+ 	}
+ 
+ 	bootm_argv[1] = env_get("kernel_addr_r");
+-- 
+2.17.1
+

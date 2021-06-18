@@ -4,11 +4,6 @@ FILESEXTRAPATHS_append := ":${THISDIR}/${PN}"
 
 SCMVERSION="n"
 
-# We pin to the 32.4.4 revision as of 12 Jan 2021
-# to ensure the upstream BSP layer doesn't bring in a newer
-# version that might fail to build or boot without notice.
-SRCREV = "87e09c14b15ad302b451f40f4237bb14f553c1e0"
-
 # Prevent delayed booting
 # and support using partition label to load rootfs
 # in the case of jetson-xavier and tx2 flasher
@@ -51,17 +46,18 @@ SRC_URI_append_jn30b-nano = " \
     file://tegra210-p3448-0002-p3449-0000-b00-jn30b.dtb \
 "
 SRC_URI_append_floyd-nano = " \
-    file://floyd-nano-Port-patches-from-L4T-32.3.1-for-this-DT.patch \
+    file://floyd-nano-Port-32.3.1-Floyd-patches-to-32.5.1.patch \
 "
 
 SRC_URI_append_jetson-nano = " \
     file://0001-gasket-Backport-gasket-driver-from-linux-coral.patch \
-    file://0001-Enable-SPI1.patch \
+    file://nvidia-platform-t210-enable-SPI0-pins-on-40-pin-head.patch \
 "
 
 SRC_URI_append_jetson-nano-emmc = " \
     file://nano-mark-gpio-as-disabled-when-freed.patch \
     file://0001-gasket-Backport-gasket-driver-from-linux-coral.patch \
+    file://nvidia-platform-t210-enable-SPI0-pins-on-40-pin-head.patch \
 "
 
 SRC_URI_append_photon-nano = " \
@@ -250,6 +246,7 @@ BALENA_CONFIGS[backlight] = " \
     CONFIG_BACKLIGHT_CLASS_DEVICE=m \
 "
 
+L4TVER=" l4tver=${L4T_VERSION}"
 KERNEL_ROOTSPEC_jetson-nano = "\${resin_kernel_root} ro rootwait"
 KERNEL_ROOTSPEC_jetson-nano-emmc = "\${resin_kernel_root} ro rootwait"
 KERNEL_ROOTSPEC_jetson-nano-2gb-devkit = "\${resin_kernel_root} ro rootwait"
@@ -264,6 +261,14 @@ KERNEL_ROOTSPEC_jetson-xavier-nx-devkit-emmc = ""
 # previous flasher images.  Use label to distinguish rootfs
 KERNEL_ROOTSPEC_FLASHER_jetson-tx2 = " root=LABEL=flash-rootA ro rootwait flasher gasket.dma_bit_mask=32 pcie_aspm=off"
 KERNEL_ROOTSPEC_FLASHER_jetson-tx1 = " root=LABEL=flash-rootA ro rootwait flasher"
+KERNEL_ROOTSPEC_append="${L4TVER}"
+KERNEL_ROOTSPEC_FLASHER_append="${L4TVER}"
+
+# The TX2 NX doesn't boot if FDT specifies a DTB,
+# even if it's the unmodified dtb of this device type, see:
+# https://forums.developer.nvidia.com/t/jetpack-4-5-1-silent-panic-when-booting-with-kernel-patch/180200/12
+EXTLINUX_FDT="FDT default"
+EXTLINUX_FDT_jetson-tx2-nx-devkit=""
 
 generate_extlinux_conf() {
     install -d ${D}/${KERNEL_IMAGEDEST}/extlinux
@@ -275,7 +280,7 @@ MENU TITLE Boot Options
 LABEL primary
       MENU LABEL primary ${KERNEL_IMAGETYPE}
       LINUX /${KERNEL_IMAGETYPE}
-      FDT default
+      ${EXTLINUX_FDT}
       APPEND \${cbootargs} ${kernelRootspec} \${os_cmdline} sdhci_tegra.en_boot_part_access=1
 EOF
     kernelRootspec="${KERNEL_ROOTSPEC_FLASHER}" ; cat >${D}/${KERNEL_IMAGEDEST}/extlinux/extlinux.conf_flasher << EOF

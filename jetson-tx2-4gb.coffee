@@ -12,7 +12,7 @@ postProvisioningInstructions = [
 
 module.exports =
 	version: 1
-	slug: 'jetson-tx2-4-gb'
+	slug: 'jetson-tx2-4gb'
 	name: 'Nvidia Jetson TX2 4GB'
 	arch: 'aarch64'
 	state: 'released'
@@ -36,11 +36,11 @@ module.exports =
 	supportsBlink: false
 
 	yocto:
-		machine: 'jetson-tx2-4-gb'
+		machine: 'jetson-tx2-4gb'
 		image: 'balena-image-flasher'
 		fstype: 'balenaos-img'
 		version: 'yocto-dunfell'
-		deployArtifact: 'balena-image-flasher-jetson-tx2-4-gb.balenaos-img'
+		deployArtifact: 'balena-image-flasher-jetson-tx2-4gb.balenaos-img'
 		compressed: true
 
 	options: [ networkOptions.group ]

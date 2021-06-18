@@ -179,6 +179,11 @@ IMAGE_INSTALL_append_jetson-tx2 = " \
     bt-scripts \
     jetson-dtbs \
 "
+IMAGE_INSTALL_append_jetson-tx2-nx-devkit = " \
+    tegra-firmware-rtl8822 \
+    kernel-module-rtk-btusb \
+    kernel-module-rtl8822ce \
+"
 
 IMAGE_INSTALL_append_jetson-tx1 = " \
     tegra210-flash-dry \

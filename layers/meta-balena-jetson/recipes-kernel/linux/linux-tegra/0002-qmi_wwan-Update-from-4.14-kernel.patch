@@ -1,6 +1,6 @@
-From 36f35c495cfee2492afbce645b1df477db1eb9ec Mon Sep 17 00:00:00 2001
+From 8c03105a0b8ac451a9bc4baa8d3e9ee6cdd2527c Mon Sep 17 00:00:00 2001
 From: Alexandru Costache <alexandru@balena.io>
-Date: Mon, 19 Aug 2019 16:19:53 +0200
+Date: Thu, 27 May 2021 12:59:12 +0200
 Subject: [PATCH] Update qmi_wwan to kernel 4.14
 
 Modem Internet Networking was not working for the Spacely board.
@@ -9,25 +9,15 @@ These updates were necessary to have internet over GSM Modems.
 Upstream-Status: Inappropriate [backport]
 
 Signed-off-by: Vicentiu Galanopulo <vicentiu@balena.io>
-Signed-off-by: Alexandru Costache <alexandru@balena.io>
 ---
- drivers/net/usb/qmi_wwan.c | 397 +++++++++++++++++++++++++++++++++++--
- 1 file changed, 385 insertions(+), 12 deletions(-)
+ drivers/net/usb/qmi_wwan.c | 388 ++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 379 insertions(+), 9 deletions(-)
 
 diff --git a/drivers/net/usb/qmi_wwan.c b/drivers/net/usb/qmi_wwan.c
-index 2b728cc52e3a..ebda21e7679b 100644
+index de7b431fdd6b..fc54f33297f8 100644
 --- a/drivers/net/usb/qmi_wwan.c
 +++ b/drivers/net/usb/qmi_wwan.c
-@@ -22,6 +22,8 @@
- #include <linux/usb/usbnet.h>
- #include <linux/usb/cdc-wdm.h>
- 
-+#define EVENT_NO_IP_ALIGN 13
-+
- /* This driver supports wwan (3G/LTE/?) devices using a vendor
-  * specific management protocol called Qualcomm MSM Interface (QMI) -
-  * in addition to the more common AT commands over serial interface
-@@ -57,12 +59,211 @@ struct qmi_wwan_state {
+@@ -57,12 +57,210 @@ struct qmi_wwan_state {
  
  enum qmi_wwan_flags {
  	QMI_WWAN_FLAG_RAWIP = 1 << 0,
@@ -39,311 +29,315 @@ index 2b728cc52e3a..ebda21e7679b 100644
  };
  
 +struct qmimux_hdr {
-+	u8 pad;
-+	u8 mux_id;
-+	__be16 pkt_len;
++       u8 pad;
++       u8 mux_id;
++       __be16 pkt_len;
 +};
 +
 +struct qmimux_priv {
-+	struct net_device *real_dev;
-+	u8 mux_id;
++       struct net_device *real_dev;
++       u8 mux_id;
 +};
 +
 +static int qmimux_open(struct net_device *dev)
 +{
-+	struct qmimux_priv *priv = netdev_priv(dev);
-+	struct net_device *real_dev = priv->real_dev;
++       struct qmimux_priv *priv = netdev_priv(dev);
++       struct net_device *real_dev = priv->real_dev;
 +
-+	if (!(priv->real_dev->flags & IFF_UP))
-+		return -ENETDOWN;
++       if (!(priv->real_dev->flags & IFF_UP))
++               return -ENETDOWN;
 +
-+	if (netif_carrier_ok(real_dev))
-+		netif_carrier_on(dev);
-+	return 0;
++       if (netif_carrier_ok(real_dev))
++               netif_carrier_on(dev);
++       return 0;
 +}
 +
 +static int qmimux_stop(struct net_device *dev)
 +{
-+	netif_carrier_off(dev);
-+	return 0;
++       netif_carrier_off(dev);
++       return 0;
 +}
 +
 +static netdev_tx_t qmimux_start_xmit(struct sk_buff *skb, struct net_device *dev)
 +{
-+	struct qmimux_priv *priv = netdev_priv(dev);
-+	unsigned int len = skb->len;
-+	struct qmimux_hdr *hdr;
++       struct qmimux_priv *priv = netdev_priv(dev);
++       unsigned int len = skb->len;
++       struct qmimux_hdr *hdr;
 +
-+	hdr = (struct qmimux_hdr*)skb_push(skb, sizeof(struct qmimux_hdr));
-+	hdr->pad = 0;
-+	hdr->mux_id = priv->mux_id;
-+	hdr->pkt_len = cpu_to_be16(len);
-+	skb->dev = priv->real_dev;
-+	return dev_queue_xmit(skb);
++       hdr = (struct qmimux_hdr*)skb_push(skb, sizeof(struct qmimux_hdr));
++       hdr->pad = 0;
++       hdr->mux_id = priv->mux_id;
++       hdr->pkt_len = cpu_to_be16(len);
++       skb->dev = priv->real_dev;
++       return dev_queue_xmit(skb);
 +}
 +
 +static const struct net_device_ops qmimux_netdev_ops = {
-+	.ndo_open       = qmimux_open,
-+	.ndo_stop       = qmimux_stop,
-+	.ndo_start_xmit = qmimux_start_xmit,
++       .ndo_open       = qmimux_open,
++       .ndo_stop       = qmimux_stop,
++       .ndo_start_xmit = qmimux_start_xmit,
 +};
 +
 +static void qmimux_setup(struct net_device *dev)
 +{
-+	dev->header_ops      = NULL;  /* No header */
-+	dev->type            = ARPHRD_NONE;
-+	dev->hard_header_len = 0;
-+	dev->addr_len        = 0;
-+	dev->flags           = IFF_POINTOPOINT | IFF_NOARP | IFF_MULTICAST;
-+	dev->netdev_ops      = &qmimux_netdev_ops;
-+	dev->mtu             = 1500;
-+	/*dev->needs_free_netdev = true;*/
++       dev->header_ops      = NULL;  /* No header */
++       dev->type            = ARPHRD_NONE;
++       dev->hard_header_len = 0;
++       dev->addr_len        = 0;
++       dev->flags           = IFF_POINTOPOINT | IFF_NOARP | IFF_MULTICAST;
++       dev->netdev_ops      = &qmimux_netdev_ops;
++       dev->mtu             = 1500;
++       /*dev->needs_free_netdev = true;*/
 +}
 +
 +static struct net_device *qmimux_find_dev(struct usbnet *dev, u8 mux_id)
 +{
-+	struct qmimux_priv *priv;
-+	struct list_head *iter;
-+	struct net_device *ldev;
++       struct qmimux_priv *priv;
++       struct list_head *iter;
++       struct net_device *ldev;
 +
-+	rcu_read_lock();
-+	netdev_for_each_upper_dev_rcu(dev->net, ldev, iter) {
-+		priv = netdev_priv(ldev);
-+		if (priv->mux_id == mux_id) {
-+			rcu_read_unlock();
-+			return ldev;
-+		}
-+	}
-+	rcu_read_unlock();
-+	return NULL;
++       rcu_read_lock();
++       netdev_for_each_upper_dev_rcu(dev->net, ldev, iter) {
++               priv = netdev_priv(ldev);
++               if (priv->mux_id == mux_id) {
++                       rcu_read_unlock();
++                       return ldev;
++               }
++       }
++       rcu_read_unlock();
++       return NULL;
 +}
 +
 +static bool qmimux_has_slaves(struct usbnet *dev)
 +{
-+	return !list_empty(&dev->net->adj_list.upper);
++       return !list_empty(&dev->net->adj_list.upper);
 +}
 +
 +static void *skb_put_data(struct sk_buff *skb, const void *data,
-+		 unsigned int len)
++                unsigned int len)
 +{
-+	void *tmp = skb_put(skb, len);
++       void *tmp = skb_put(skb, len);
 +
-+	memcpy(tmp, data, len);
++       memcpy(tmp, data, len);
 +
-+	return tmp;
++       return tmp;
 +}
 +
 +static int qmimux_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 +{
-+	unsigned int len, offset = 0;
-+	struct qmimux_hdr *hdr;
-+	struct net_device *net;
-+	struct sk_buff *skbn;
-+	u8 qmimux_hdr_sz = sizeof(*hdr);
++       unsigned int len, offset = 0;
++       struct qmimux_hdr *hdr;
++       struct net_device *net;
++       struct sk_buff *skbn;
++       u8 qmimux_hdr_sz = sizeof(*hdr);
 +
-+	while (offset + qmimux_hdr_sz < skb->len) {
-+		hdr = (struct qmimux_hdr *)(skb->data + offset);
-+		len = be16_to_cpu(hdr->pkt_len);
++       while (offset + qmimux_hdr_sz < skb->len) {
++               hdr = (struct qmimux_hdr *)(skb->data + offset);
++               len = be16_to_cpu(hdr->pkt_len);
 +
-+		/* drop the packet, bogus length */
-+		if (offset + len + qmimux_hdr_sz > skb->len)
-+			return 0;
++               /* drop the packet, bogus length */
++               if (offset + len + qmimux_hdr_sz > skb->len)
++                       return 0;
 +
-+		/* control packet, we do not know what to do */
-+		if (hdr->pad & 0x80)
-+			goto skip;
++               /* control packet, we do not know what to do */
++               if (hdr->pad & 0x80)
++                       goto skip;
 +
-+		net = qmimux_find_dev(dev, hdr->mux_id);
-+		if (!net)
-+			goto skip;
-+		skbn = netdev_alloc_skb(net, len);
-+		if (!skbn)
-+			return 0;
-+		skbn->dev = net;
++               net = qmimux_find_dev(dev, hdr->mux_id);
++               if (!net)
++                       goto skip;
++               skbn = netdev_alloc_skb(net, len);
++               if (!skbn)
++                       return 0;
++               skbn->dev = net;
 +
-+		switch (skb->data[offset + qmimux_hdr_sz] & 0xf0) {
-+		case 0x40:
-+			skbn->protocol = htons(ETH_P_IP);
-+			break;
-+		case 0x60:
-+			skbn->protocol = htons(ETH_P_IPV6);
-+			break;
-+		default:
-+			/* not ip - do not know what to do */
-+			goto skip;
-+		}
++               switch (skb->data[offset + qmimux_hdr_sz] & 0xf0) {
++               case 0x40:
++                       skbn->protocol = htons(ETH_P_IP);
++                       break;
++               case 0x60:
++                       skbn->protocol = htons(ETH_P_IPV6);
++                       break;
++               default:
++                       /* not ip - do not know what to do */
++                       goto skip;
++               }
 +
-+		skb_put_data(skbn, skb->data + offset + qmimux_hdr_sz, len);
-+		if (netif_rx(skbn) != NET_RX_SUCCESS)
-+			return 0;
++               skb_put_data(skbn, skb->data + offset + qmimux_hdr_sz, len);
++               if (netif_rx(skbn) != NET_RX_SUCCESS)
++                       return 0;
 +
 +skip:
-+		offset += len + qmimux_hdr_sz;
-+	}
-+	return 1;
++               offset += len + qmimux_hdr_sz;
++       }
++       return 1;
 +}
-+
 +static int qmimux_register_device(struct net_device *real_dev, u8 mux_id)
 +{
-+	struct net_device *new_dev;
-+	struct qmimux_priv *priv;
-+	int err;
++       struct net_device *new_dev;
++       struct qmimux_priv *priv;
++       int err;
 +
-+	new_dev = alloc_netdev(sizeof(struct qmimux_priv),
-+			       "qmimux%d", NET_NAME_UNKNOWN, qmimux_setup);
-+	if (!new_dev)
-+		return -ENOBUFS;
++       new_dev = alloc_netdev(sizeof(struct qmimux_priv),
++                              "qmimux%d", NET_NAME_UNKNOWN, qmimux_setup);
++       if (!new_dev)
++               return -ENOBUFS;
 +
-+	dev_net_set(new_dev, dev_net(real_dev));
-+	priv = netdev_priv(new_dev);
-+	priv->mux_id = mux_id;
-+	priv->real_dev = real_dev;
++       dev_net_set(new_dev, dev_net(real_dev));
++       priv = netdev_priv(new_dev);
++       priv->mux_id = mux_id;
++       priv->real_dev = real_dev;
 +
-+	err = register_netdevice(new_dev);
-+	if (err < 0)
-+		goto out_free_newdev;
++       err = register_netdevice(new_dev);
++       if (err < 0)
++               goto out_free_newdev;
 +
-+	/* Account for reference in struct qmimux_priv_priv */
-+	dev_hold(real_dev);
++       /* Account for reference in struct qmimux_priv_priv */
++       dev_hold(real_dev);
 +
-+	err = netdev_upper_dev_link(real_dev, new_dev);
-+	if (err)
-+		goto out_unregister_netdev;
++       err = netdev_upper_dev_link(real_dev, new_dev);
++       if (err)
++               goto out_unregister_netdev;
 +
-+	netif_stacked_transfer_operstate(real_dev, new_dev);
++       netif_stacked_transfer_operstate(real_dev, new_dev);
 +
-+	return 0;
++       return 0;
 +
 +out_unregister_netdev:
-+	unregister_netdevice(new_dev);
-+	dev_put(real_dev);
++       unregister_netdevice(new_dev);
++       dev_put(real_dev);
 +
 +out_free_newdev:
-+	free_netdev(new_dev);
-+	return err;
++       free_netdev(new_dev);
++       return err;
 +}
 +
 +static void qmimux_unregister_device(struct net_device *dev)
 +{
-+	struct qmimux_priv *priv = netdev_priv(dev);
-+	struct net_device *real_dev = priv->real_dev;
++       struct qmimux_priv *priv = netdev_priv(dev);
++       struct net_device *real_dev = priv->real_dev;
 +
-+	netdev_upper_dev_unlink(real_dev, dev);
-+	unregister_netdevice(dev);
++       netdev_upper_dev_unlink(real_dev, dev);
++       unregister_netdevice(dev);
 +
-+	/* Get rid of the reference to real_dev */
-+	dev_put(real_dev);
-+	free_netdev(dev);
++       /* Get rid of the reference to real_dev */
++       dev_put(real_dev);
++       free_netdev(dev);
 +}
 +
  static void qmi_wwan_netdev_setup(struct net_device *net)
  {
  	struct usbnet *dev = netdev_priv(net);
-@@ -138,10 +339,115 @@ static ssize_t raw_ip_store(struct device *d,  struct device_attribute *attr, co
- 	return ret;
+@@ -86,6 +284,106 @@ static void qmi_wwan_netdev_setup(struct net_device *net)
+ 	usbnet_change_mtu(net, net->mtu);
  }
  
 +static ssize_t add_mux_show(struct device *d, struct device_attribute *attr, char *buf)
 +{
-+	struct net_device *dev = to_net_dev(d);
-+	struct qmimux_priv *priv;
-+	struct list_head *iter;
-+	struct net_device *ldev;
-+	ssize_t count = 0;
++       struct net_device *dev = to_net_dev(d);
++       struct qmimux_priv *priv;
++       struct list_head *iter;
++       struct net_device *ldev;
++       ssize_t count = 0;
 +
-+	rcu_read_lock();
-+	netdev_for_each_upper_dev_rcu(dev, ldev, iter) {
-+		priv = netdev_priv(ldev);
-+		count += scnprintf(&buf[count], PAGE_SIZE - count,
-+				   "0x%02x\n", priv->mux_id);
-+	}
-+	rcu_read_unlock();
-+	return count;
++       rcu_read_lock();
++       netdev_for_each_upper_dev_rcu(dev, ldev, iter) {
++               priv = netdev_priv(ldev);
++               count += scnprintf(&buf[count], PAGE_SIZE - count,
++                                 "0x%02x\n", priv->mux_id);
++       }
++       rcu_read_unlock();
++       return count;
 +}
 +
 +static ssize_t add_mux_store(struct device *d,  struct device_attribute *attr, const char *buf, size_t len)
 +{
-+	struct usbnet *dev = netdev_priv(to_net_dev(d));
-+	struct qmi_wwan_state *info = (void *)&dev->data;
-+	u8 mux_id;
-+	int ret;
++       struct usbnet *dev = netdev_priv(to_net_dev(d));
++       struct qmi_wwan_state *info = (void *)&dev->data;
++       u8 mux_id;
++       int ret;
++       if (kstrtou8(buf, 0, &mux_id))
++               return -EINVAL;
 +
-+	if (kstrtou8(buf, 0, &mux_id))
-+		return -EINVAL;
++       /* mux_id [1 - 0x7f] range empirically found */
++       if (mux_id < 1 || mux_id > 0x7f)
++               return -EINVAL;
 +
-+	/* mux_id [1 - 0x7f] range empirically found */
-+	if (mux_id < 1 || mux_id > 0x7f)
-+		return -EINVAL;
++       if (!rtnl_trylock())
++               return restart_syscall();
 +
-+	if (!rtnl_trylock())
-+		return restart_syscall();
++       if (qmimux_find_dev(dev, mux_id)) {
++               netdev_err(dev->net, "mux_id already present\n");
++               ret = -EINVAL;
++               goto err;
++       }
 +
-+	if (qmimux_find_dev(dev, mux_id)) {
-+		netdev_err(dev->net, "mux_id already present\n");
-+		ret = -EINVAL;
-+		goto err;
-+	}
++       /* we don't want to modify a running netdev */
++       if (netif_running(dev->net)) {
++               netdev_err(dev->net, "Cannot change a running device\n");
++               ret = -EBUSY;
++               goto err;
++       }
 +
-+	/* we don't want to modify a running netdev */
-+	if (netif_running(dev->net)) {
-+		netdev_err(dev->net, "Cannot change a running device\n");
-+		ret = -EBUSY;
-+		goto err;
-+	}
-+
-+	ret = qmimux_register_device(dev->net, mux_id);
-+	if (!ret) {
-+		info->flags |= QMI_WWAN_FLAG_MUX;
-+		ret = len;
-+	}
++       ret = qmimux_register_device(dev->net, mux_id);
++       if (!ret) {
++               info->flags |= QMI_WWAN_FLAG_MUX;
++               ret = len;
++       }
 +err:
-+	rtnl_unlock();
-+	return ret;
++       rtnl_unlock();
++       return ret;
 +}
 +
 +static ssize_t del_mux_show(struct device *d, struct device_attribute *attr, char *buf)
 +{
-+	return add_mux_show(d, attr, buf);
++       return add_mux_show(d, attr, buf);
 +}
 +
 +static ssize_t del_mux_store(struct device *d,  struct device_attribute *attr, const char *buf, size_t len)
 +{
-+	struct usbnet *dev = netdev_priv(to_net_dev(d));
-+	struct qmi_wwan_state *info = (void *)&dev->data;
-+	struct net_device *del_dev;
-+	u8 mux_id;
-+	int ret = 0;
++       struct usbnet *dev = netdev_priv(to_net_dev(d));
++       struct qmi_wwan_state *info = (void *)&dev->data;
++       struct net_device *del_dev;
++       u8 mux_id;
++       int ret = 0;
 +
-+	if (kstrtou8(buf, 0, &mux_id))
-+		return -EINVAL;
++       if (kstrtou8(buf, 0, &mux_id))
++               return -EINVAL;
 +
-+	if (!rtnl_trylock())
-+		return restart_syscall();
++       if (!rtnl_trylock())
++               return restart_syscall();
 +
-+	/* we don't want to modify a running netdev */
-+	if (netif_running(dev->net)) {
-+		netdev_err(dev->net, "Cannot change a running device\n");
-+		ret = -EBUSY;
-+		goto err;
-+	}
++       /* we don't want to modify a running netdev */
++       if (netif_running(dev->net)) {
++               netdev_err(dev->net, "Cannot change a running device\n");
++               ret = -EBUSY;
++               goto err;
++       }
 +
-+	del_dev = qmimux_find_dev(dev, mux_id);
-+	if (!del_dev) {
-+		netdev_err(dev->net, "mux_id not present\n");
-+		ret = -EINVAL;
-+		goto err;
-+	}
-+	qmimux_unregister_device(del_dev);
++       del_dev = qmimux_find_dev(dev, mux_id);
++       if (!del_dev) {
++               netdev_err(dev->net, "mux_id not present\n");
++               ret = -EINVAL;
++               goto err;
++       }
++       qmimux_unregister_device(del_dev);
 +
-+	if (!qmimux_has_slaves(dev))
-+		info->flags &= ~QMI_WWAN_FLAG_MUX;
-+	ret = len;
++       if (!qmimux_has_slaves(dev))
++               info->flags &= ~QMI_WWAN_FLAG_MUX;
++       ret = len;
 +err:
-+	rtnl_unlock();
-+	return ret;
++       rtnl_unlock();
++       return ret;
 +}
 +
 +
+ static ssize_t raw_ip_show(struct device *d, struct device_attribute *attr, char *buf)
+ {
+ 	struct usbnet *dev = netdev_priv(to_net_dev(d));
+@@ -139,9 +437,13 @@ static ssize_t raw_ip_store(struct device *d,  struct device_attribute *attr, co
+ }
+ 
  static DEVICE_ATTR_RW(raw_ip);
 +static DEVICE_ATTR_RW(add_mux);
 +static DEVICE_ATTR_RW(del_mux);
@@ -355,7 +349,7 @@ index 2b728cc52e3a..ebda21e7679b 100644
  	NULL,
  };
  
-@@ -185,6 +491,9 @@ static int qmi_wwan_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
+@@ -185,6 +487,9 @@ static int qmi_wwan_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
  	if (skb->len < dev->net->hard_header_len)
  		return 0;
  
@@ -365,49 +359,30 @@ index 2b728cc52e3a..ebda21e7679b 100644
  	switch (skb->data[0] & 0xf0) {
  	case 0x40:
  		proto = htons(ETH_P_IP);
-@@ -215,6 +524,7 @@ static int qmi_wwan_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
- 
- 	if (skb_headroom(skb) < ETH_HLEN)
- 		return 0;
-+
- 	skb_push(skb, ETH_HLEN);
- 	skb_reset_mac_header(skb);
- 	eth_hdr(skb)->h_proto = proto;
-@@ -672,6 +982,13 @@ static const struct usb_device_id products[] = {
+@@ -672,6 +977,13 @@ static const struct usb_device_id products[] = {
  		USB_DEVICE_AND_INTERFACE_INFO(0x03f0, 0x581d, USB_CLASS_VENDOR_SPEC, 1, 7),
  		.driver_info = (unsigned long)&qmi_wwan_info,
  	},
-+	{	/* Quectel EP06/EG06/EM06 */
++	{       /* Quectel EP06/EG06/EM06 */
 +		USB_DEVICE_AND_INTERFACE_INFO(0x2c7c, 0x0306,
-+					      USB_CLASS_VENDOR_SPEC,
-+					      USB_SUBCLASS_VENDOR_SPEC,
-+					      0xff),
-+		.driver_info	    = (unsigned long)&qmi_wwan_info_quirk_dtr,
++					USB_CLASS_VENDOR_SPEC,
++					USB_SUBCLASS_VENDOR_SPEC,
++					0xff),
++		.driver_info        = (unsigned long)&qmi_wwan_info_quirk_dtr,
 +	},
  
  	/* 3. Combined interface devices matching on interface number */
  	{QMI_FIXED_INTF(0x0408, 0xea42, 4)},	/* Yota / Megafon M100-1 */
-@@ -814,6 +1131,8 @@ static const struct usb_device_id products[] = {
+@@ -814,6 +1126,8 @@ static const struct usb_device_id products[] = {
  	{QMI_FIXED_INTF(0x1435, 0xd181, 3)},	/* Wistron NeWeb D18Q1 */
  	{QMI_FIXED_INTF(0x1435, 0xd181, 4)},	/* Wistron NeWeb D18Q1 */
  	{QMI_FIXED_INTF(0x1435, 0xd181, 5)},	/* Wistron NeWeb D18Q1 */
-+	{QMI_FIXED_INTF(0x1435, 0xd191, 4)},	/* Wistron NeWeb D19Q1 */
-+	{QMI_QUIRK_SET_DTR(0x1508, 0x1001, 4)},	/* Fibocom NL668 series */
++        {QMI_FIXED_INTF(0x1435, 0xd191, 4)},    /* Wistron NeWeb D19Q1 */
++        {QMI_QUIRK_SET_DTR(0x1508, 0x1001, 4)}, /* Fibocom NL668 series */
  	{QMI_FIXED_INTF(0x16d8, 0x6003, 0)},	/* CMOTech 6003 */
  	{QMI_FIXED_INTF(0x16d8, 0x6007, 0)},	/* CMOTech CHE-628S */
  	{QMI_FIXED_INTF(0x16d8, 0x6008, 0)},	/* CMOTech CMU-301 */
-@@ -895,8 +1214,8 @@ static const struct usb_device_id products[] = {
- 	{QMI_FIXED_INTF(0x114f, 0x68a2, 8)},    /* Sierra Wireless MC7750 */
- 	{QMI_FIXED_INTF(0x1199, 0x68a2, 8)},	/* Sierra Wireless MC7710 in QMI mode */
- 	{QMI_FIXED_INTF(0x1199, 0x68a2, 19)},	/* Sierra Wireless MC7710 in QMI mode */
--	{QMI_FIXED_INTF(0x1199, 0x68c0, 8)},	/* Sierra Wireless MC7304/MC7354 */
--	{QMI_FIXED_INTF(0x1199, 0x68c0, 10)},	/* Sierra Wireless MC7304/MC7354 */
-+	{QMI_QUIRK_SET_DTR(0x1199, 0x68c0, 8)},	/* Sierra Wireless MC7304/MC7354, WP76xx */
-+	{QMI_QUIRK_SET_DTR(0x1199, 0x68c0, 10)},/* Sierra Wireless MC7304/MC7354 */
- 	{QMI_FIXED_INTF(0x1199, 0x901c, 8)},    /* Sierra Wireless EM7700 */
- 	{QMI_FIXED_INTF(0x1199, 0x901f, 8)},    /* Sierra Wireless EM7355 */
- 	{QMI_FIXED_INTF(0x1199, 0x9041, 8)},	/* Sierra Wireless MC7305/MC7355 */
-@@ -908,13 +1227,15 @@ static const struct usb_device_id products[] = {
+@@ -910,13 +1224,15 @@ static const struct usb_device_id products[] = {
  	{QMI_FIXED_INTF(0x1199, 0x9056, 8)},	/* Sierra Wireless Modem */
  	{QMI_FIXED_INTF(0x1199, 0x9057, 8)},
  	{QMI_FIXED_INTF(0x1199, 0x9061, 8)},	/* Sierra Wireless Modem */
@@ -418,106 +393,101 @@ index 2b728cc52e3a..ebda21e7679b 100644
 -	{QMI_FIXED_INTF(0x1199, 0x907b, 8)},	/* Sierra Wireless EM74xx */
 -	{QMI_FIXED_INTF(0x1199, 0x907b, 10)},	/* Sierra Wireless EM74xx */
 -	{QMI_FIXED_INTF(0x1199, 0x9091, 8)},	/* Sierra Wireless EM7565 */
-+	{QMI_FIXED_INTF(0x1199, 0x9063, 8)},	/* Sierra Wireless EM7305 */
-+	{QMI_FIXED_INTF(0x1199, 0x9063, 10)},	/* Sierra Wireless EM7305 */
-+	{QMI_QUIRK_SET_DTR(0x1199, 0x9071, 8)},	/* Sierra Wireless MC74xx */
-+	{QMI_QUIRK_SET_DTR(0x1199, 0x9071, 10)},/* Sierra Wireless MC74xx */
-+	{QMI_QUIRK_SET_DTR(0x1199, 0x9079, 8)},	/* Sierra Wireless EM74xx */
-+	{QMI_QUIRK_SET_DTR(0x1199, 0x9079, 10)},/* Sierra Wireless EM74xx */
-+	{QMI_QUIRK_SET_DTR(0x1199, 0x907b, 8)},	/* Sierra Wireless EM74xx */
-+	{QMI_QUIRK_SET_DTR(0x1199, 0x907b, 10)},/* Sierra Wireless EM74xx */
-+	{QMI_QUIRK_SET_DTR(0x1199, 0x9091, 8)},	/* Sierra Wireless EM7565 */
++        {QMI_FIXED_INTF(0x1199, 0x9063, 8)},    /* Sierra Wireless EM7305 */
++        {QMI_FIXED_INTF(0x1199, 0x9063, 10)},   /* Sierra Wireless EM7305 */
++        {QMI_QUIRK_SET_DTR(0x1199, 0x9071, 8)}, /* Sierra Wireless MC74xx */
++        {QMI_QUIRK_SET_DTR(0x1199, 0x9071, 10)},/* Sierra Wireless MC74xx */
++        {QMI_QUIRK_SET_DTR(0x1199, 0x9079, 8)}, /* Sierra Wireless EM74xx */
++        {QMI_QUIRK_SET_DTR(0x1199, 0x9079, 10)},/* Sierra Wireless EM74xx */
++        {QMI_QUIRK_SET_DTR(0x1199, 0x907b, 8)}, /* Sierra Wireless EM74xx */
++        {QMI_QUIRK_SET_DTR(0x1199, 0x907b, 10)},/* Sierra Wireless EM74xx */
++        {QMI_QUIRK_SET_DTR(0x1199, 0x9091, 8)}, /* Sierra Wireless EM7565 */
  	{QMI_FIXED_INTF(0x1bbb, 0x011e, 4)},	/* Telekom Speedstick LTE II (Alcatel One Touch L100V LTE) */
  	{QMI_FIXED_INTF(0x1bbb, 0x0203, 2)},	/* Alcatel L800MA */
  	{QMI_FIXED_INTF(0x2357, 0x0201, 4)},	/* TP-LINK HSUPA Modem MA180 */
-@@ -923,7 +1244,10 @@ static const struct usb_device_id products[] = {
+@@ -925,7 +1241,10 @@ static const struct usb_device_id products[] = {
  	{QMI_FIXED_INTF(0x1bc7, 0x1100, 3)},	/* Telit ME910 */
  	{QMI_FIXED_INTF(0x1bc7, 0x1101, 3)},	/* Telit ME910 dual modem */
  	{QMI_FIXED_INTF(0x1bc7, 0x1200, 5)},	/* Telit LE920 */
 -	{QMI_FIXED_INTF(0x1bc7, 0x1201, 2)},	/* Telit LE920 */
-+	{QMI_QUIRK_SET_DTR(0x1bc7, 0x1201, 2)},	/* Telit LE920, LE920A4 */
-+	{QMI_QUIRK_SET_DTR(0x1bc7, 0x1900, 1)},	/* Telit LN940 series */
-+	{QMI_FIXED_INTF(0x1c9e, 0x9801, 3)},	/* Telewell TW-3G HSPA+ */
-+	{QMI_FIXED_INTF(0x1c9e, 0x9803, 4)},	/* Telewell TW-3G HSPA+ */
++        {QMI_QUIRK_SET_DTR(0x1bc7, 0x1201, 2)}, /* Telit LE920, LE920A4 */
++        {QMI_QUIRK_SET_DTR(0x1bc7, 0x1900, 1)}, /* Telit LN940 series */
++        {QMI_FIXED_INTF(0x1c9e, 0x9801, 3)},    /* Telewell TW-3G HSPA+ */
++        {QMI_FIXED_INTF(0x1c9e, 0x9803, 4)},    /* Telewell TW-3G HSPA+ */
  	{QMI_FIXED_INTF(0x1c9e, 0x9b01, 3)},	/* XS Stick W100-2 from 4G Systems */
  	{QMI_FIXED_INTF(0x0b3c, 0xc000, 4)},	/* Olivetti Olicard 100 */
  	{QMI_FIXED_INTF(0x0b3c, 0xc001, 4)},	/* Olivetti Olicard 120 */
-@@ -951,12 +1275,13 @@ static const struct usb_device_id products[] = {
- 	{QMI_FIXED_INTF(0x03f0, 0x4e1d, 8)},	/* HP lt4111 LTE/EV-DO/HSPA+ Gobi 4G Module */
- 	{QMI_FIXED_INTF(0x03f0, 0x9d1d, 1)},	/* HP lt4120 Snapdragon X5 LTE */
- 	{QMI_FIXED_INTF(0x22de, 0x9061, 3)},	/* WeTelecom WPD-600N */
--	{QMI_FIXED_INTF(0x1e0e, 0x9001, 5)},	/* SIMCom 7230E */
-+	{QMI_QUIRK_SET_DTR(0x1e0e, 0x9001, 5)},	/* SIMCom 7100E, 7230E, 7600E ++ */
- 	{QMI_QUIRK_SET_DTR(0x2c7c, 0x0125, 4)},	/* Quectel EC25, EC20 R2.0  Mini PCIe */
- 	{QMI_QUIRK_SET_DTR(0x2c7c, 0x0121, 4)},	/* Quectel EC21 Mini PCIe */
+@@ -961,6 +1280,7 @@ static const struct usb_device_id products[] = {
  	{QMI_QUIRK_SET_DTR(0x2c7c, 0x0191, 4)},	/* Quectel EG91 */
  	{QMI_FIXED_INTF(0x2c7c, 0x0296, 4)},	/* Quectel BG96 */
  	{QMI_QUIRK_SET_DTR(0x2c7c, 0x0306, 4)},	/* Quectel EP06 Mini PCIe */
-+	{QMI_QUIRK_SET_DTR(0x2cb7, 0x0104, 4)},	/* Fibocom NL678 series */
++        {QMI_QUIRK_SET_DTR(0x2cb7, 0x0104, 4)}, /* Fibocom NL678 series */
  
  	/* 4. Gobi 1000 devices */
  	{QMI_GOBI1K_DEVICE(0x05c6, 0x9212)},	/* Acer Gobi Modem Device */
-@@ -1019,6 +1344,19 @@ static const struct usb_device_id products[] = {
+@@ -1023,6 +1343,20 @@ static const struct usb_device_id products[] = {
  };
  MODULE_DEVICE_TABLE(usb, products);
  
 +static bool quectel_ep06_diag_detected(struct usb_interface *intf)
 +{
-+	struct usb_device *dev = interface_to_usbdev(intf);
-+	struct usb_interface_descriptor intf_desc = intf->cur_altsetting->desc;
++       struct usb_device *dev = interface_to_usbdev(intf);
++       struct usb_interface_descriptor intf_desc = intf->cur_altsetting->desc;
 +
-+	if (le16_to_cpu(dev->descriptor.idVendor) == 0x2c7c &&
-+	    le16_to_cpu(dev->descriptor.idProduct) == 0x0306 &&
-+	    intf_desc.bNumEndpoints == 2)
-+		return true;
++       if (le16_to_cpu(dev->descriptor.idVendor) == 0x2c7c &&
++           le16_to_cpu(dev->descriptor.idProduct) == 0x0306 &&
++           intf_desc.bNumEndpoints == 2)
++               return true;
 +
-+	return false;
++       return false;
 +}
++
 +
  static bool quectel_ec20_detected(struct usb_interface *intf)
  {
  	struct usb_device *dev = interface_to_usbdev(intf);
-@@ -1066,14 +1404,49 @@ static int qmi_wwan_probe(struct usb_interface *intf,
+@@ -1070,14 +1404,50 @@ static int qmi_wwan_probe(struct usb_interface *intf,
  		return -ENODEV;
  	}
  
-+	/* Quectel EP06/EM06/EG06 supports dynamic interface configuration, so
-+	 * we need to match on class/subclass/protocol. These values are
-+	 * identical for the diagnostic- and QMI-interface, but bNumEndpoints is
-+	 * different. Ignore the current interface if the number of endpoints
-+	 * the number for the diag interface (two).
-+	 */
-+	if (quectel_ep06_diag_detected(intf))
-+		return -ENODEV;
++        /* Quectel EP06/EM06/EG06 supports dynamic interface configuration, so
++         * we need to match on class/subclass/protocol. These values are
++         * identical for the diagnostic- and QMI-interface, but bNumEndpoints is
++         * different. Ignore the current interface if the number of endpoints
++         * the number for the diag interface (two).
++         */
++        if (quectel_ep06_diag_detected(intf))
++                return -ENODEV;
 +
  	return usbnet_probe(intf, id);
  }
  
 +static void qmi_wwan_disconnect(struct usb_interface *intf)
 +{
-+	struct usbnet *dev = usb_get_intfdata(intf);
-+	struct qmi_wwan_state *info;
-+	struct list_head *iter;
-+	struct net_device *ldev;
++       struct usbnet *dev = usb_get_intfdata(intf);
++       struct qmi_wwan_state *info;
++       struct list_head *iter;
++       struct net_device *ldev;
 +
-+	/* called twice if separate control and data intf */
-+	if (!dev)
-+		return;
-+	info = (void *)&dev->data;
-+	if (info->flags & QMI_WWAN_FLAG_MUX) {
-+		if (!rtnl_trylock()) {
-+			restart_syscall();
-+			return;
-+		}
-+		rcu_read_lock();
-+		netdev_for_each_upper_dev_rcu(dev->net, ldev, iter)
-+			qmimux_unregister_device(ldev);
-+		rcu_read_unlock();
-+		rtnl_unlock();
-+		info->flags &= ~QMI_WWAN_FLAG_MUX;
-+	}
-+	usbnet_disconnect(intf);
++       /* called twice if separate control and data intf */
++       if (!dev)
++               return;
++       info = (void *)&dev->data;
++       if (info->flags & QMI_WWAN_FLAG_MUX) {
++               if (!rtnl_trylock()) {
++                       restart_syscall();
++                       return;
++               }
++               rcu_read_lock();
++               netdev_for_each_upper_dev_rcu(dev->net, ldev, iter)
++                       qmimux_unregister_device(ldev);
++               rcu_read_unlock();
++               rtnl_unlock();
++               info->flags &= ~QMI_WWAN_FLAG_MUX;
++       }
++       usbnet_disconnect(intf);
 +}
++
 +
  static struct usb_driver qmi_wwan_driver = {
  	.name		      = "qmi_wwan",
