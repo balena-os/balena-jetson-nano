@@ -1,0 +1,32 @@
+From c640de5fcf7bbc1c99d70492f7c2e3d47cdbd995 Mon Sep 17 00:00:00 2001
+From: Florin Sarbu <florin@balena.io>
+Date: Mon, 9 Mar 2020 16:15:36 +0100
+Subject: [PATCH] test
+
+Signed-off-by: Florin Sarbu <florin@balena.io>
+---
+ .../tegra186-quill-p3310-1000-a00-plugin-manager.dtsi             | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/nvidia/platform/t18x/common/kernel-dts/t18x-common-plugin-manager/tegra186-quill-p3310-1000-a00-plugin-manager.dtsi b/nvidia/platform/t18x/common/kernel-dts/t18x-common-plugin-manager/tegra186-quill-p3310-1000-a00-plugin-manager.dtsi
+index 90f53bf..9aaf1e3 100644
+--- a/nvidia/platform/t18x/common/kernel-dts/t18x-common-plugin-manager/tegra186-quill-p3310-1000-a00-plugin-manager.dtsi
++++ b/nvidia/platform/t18x/common/kernel-dts/t18x-common-plugin-manager/tegra186-quill-p3310-1000-a00-plugin-manager.dtsi
+@@ -302,6 +302,14 @@
+ 					};
+ 				};
+ 			};
++			override@3 {
++				target = <&{/fixed-regulators}>;
++				_overlay_ {
++					regulator@17 {
++						enable-active-high;
++					};
++                                };
++			};
+ 		};
+ 
+ 		fragment-e3320-dp {
+-- 
+2.7.4
+
