@@ -4,3 +4,5 @@ reviewers: 1
 upstream:
   repo: 'meta-balena'
   url: 'http://github.com/balena-os/meta-balena'
+  - repo: 'balena-yocto-scripts'
+    url: 'http://github.com/balena-os/balena-yocto-scripts'
