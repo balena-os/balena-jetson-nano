@@ -1,17 +1,14 @@
-From 6956b49dc87885a73f0aeeb3eb16965e93e5262e Mon Sep 17 00:00:00 2001
+From b696786b02853a9becd16f1ebe810007275d59ca Mon Sep 17 00:00:00 2001
 From: Alexandru Costache <alexandru@balena.io>
-Date: Thu, 1 Apr 2021 15:34:35 +0200
-Subject: [PATCH 4/4] floyd-nano: Port patches from L4T 32.3.1 for this DT
+Date: Thu, 27 May 2021 10:47:33 +0200
+Subject: [PATCH] floyd-nano: Port 32.3.1 Floyd patches to 32.5.1
 
 Author: Diamond Systems
 
 Upstream-status: Inappropriate [configuration]
 Signed-off-by: Alexandru Costache <alexandru@balena.io>
 ---
- drivers/mmc/core/sd.c                         | 32 +++++++++++
- drivers/mmc/host/sdhci-tegra.c                |  3 +
  drivers/tty/serial/serial-tegra.c             | 57 ++++++++++++++-----
- include/linux/mmc/host.h                      |  1 +
  .../tegra210-p2530-common.dtsi                |  2 +-
  ...jetson-cv-power-fixed-p2180-p2597-a00.dtsi |  2 +-
  ...0-jetson-e-power-fixed-p2530-0930-e03.dtsi |  2 +-
@@ -20,83 +17,12 @@ Signed-off-by: Alexandru Costache <alexandru@balena.io>
  .../tegra210-porg-pinmux-p3448-0002-b00.dtsi  |  6 +-
  ...gra210-porg-power-tree-p3448-0000-a00.dtsi |  2 +-
  .../tegra210-porg-plugin-manager.dtsi         |  1 +
- .../tegra210-porg-p3448-common.dtsi           | 24 ++++++--
+ .../tegra210-porg-p3448-common.dtsi           | 23 +++++++-
  .../tegra210-soc/tegra210-sdhci.dtsi          |  1 +
- 14 files changed, 116 insertions(+), 30 deletions(-)
+ 11 files changed, 80 insertions(+), 29 deletions(-)
 
-diff --git a/drivers/mmc/core/sd.c b/drivers/mmc/core/sd.c
-index 7bbc741e8396..a187fcf21e2e 100644
---- a/drivers/mmc/core/sd.c
-+++ b/drivers/mmc/core/sd.c
-@@ -738,6 +738,7 @@ int mmc_sd_get_cid(struct mmc_host *host, u32 ocr, u32 *cid, u32 *rocr)
- 	int err;
- 	u32 max_current;
- 	int retries = 10;
-+	int fallback = 0;
- 	u32 pocr = ocr;
- 	if (host->ops->voltage_switch_req)
- 		host->ops->voltage_switch_req(host, false);
-@@ -801,13 +802,44 @@ int mmc_sd_get_cid(struct mmc_host *host, u32 ocr, u32 *cid, u32 *rocr)
- 			retries = 0;
- 			goto try_again;
- 		}
-+	} else if (!fallback && (host->caps2 & MMC_CAP2_SLOT_REG_ALWAYS_ON)) {
-+		/*
-+		 * With slot regulator always-on, SW reset does not power cycle
-+		 * the card. As a result, the card continues to stay in 1.8V
-+		 * mode from previous init cycle and sends S18A=0 in response to
-+		 * CMD8 even though it supports 1.8V signalling.
-+		 * Skip CMD11, set rocr to support 1.8V for S18A=0 response from
-+		 * the card if slot is fed from always-on supply and
-+		 * continue with UHS mode init.
-+		 * If S18A=0 response is due to an HS card plugin, all subsequent
-+		 * commands at 1.8V will fail and the host controller enumerates
-+		 * the card in HS mode in the next retry.
-+		 */
-+		err = __mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_180);
-+		if (!err) {
-+			*rocr |= SD_ROCR_S18A;
-+		}
-+		fallback = 1;
-+		retries = 5;
- 	}
- 
-+
- 	if (mmc_host_is_spi(host))
- 		err = mmc_send_cid(host, cid);
- 	else
- 		err = mmc_all_send_cid(host, cid);
- 
-+	/* If immediate command after mandatory voltage switch fails with -ETIMEOUT,
-+	 * it is most likely due to an HS card connected. Switch the voltage back to
-+	 * 3.3V and re-try
-+	 */
-+	if (err == -ETIMEDOUT && fallback && retries) {
-+		__mmc_set_signal_voltage(host, MMC_SIGNAL_VOLTAGE_330);
-+		pr_warn("%s: fallback to HS enumeration.\n", mmc_hostname(host));
-+		retries--;
-+		goto try_again;
-+	}
-+
- 	if (host->ops->voltage_switch_req)
- 		host->ops->voltage_switch_req(host, true);
- 
-diff --git a/drivers/mmc/host/sdhci-tegra.c b/drivers/mmc/host/sdhci-tegra.c
-index f2e6ed38dc07..c7a6f85c22b1 100644
---- a/drivers/mmc/host/sdhci-tegra.c
-+++ b/drivers/mmc/host/sdhci-tegra.c
-@@ -2390,6 +2390,9 @@ static int sdhci_tegra_probe(struct platform_device *pdev)
- 	if (tegra_host->en_periodic_cflush)
- 		host->mmc->caps2 |= MMC_CAP2_PERIODIC_CACHE_FLUSH;
- 
-+	if (tegra_host->vmmc_always_on)
-+		host->mmc->caps2 |= MMC_CAP2_SLOT_REG_ALWAYS_ON;
-+
- 	host->mmc->caps2 |= MMC_CAP2_EN_CLK_TO_ACCESS_REG;
- 	host->mmc->caps |= MMC_CAP_WAIT_WHILE_BUSY;
- 
 diff --git a/drivers/tty/serial/serial-tegra.c b/drivers/tty/serial/serial-tegra.c
-index 60b0a7e1547d..52384563a490 100644
+index 5c275feb1fed..852035b4e1dc 100644
 --- a/drivers/tty/serial/serial-tegra.c
 +++ b/drivers/tty/serial/serial-tegra.c
 @@ -168,6 +168,7 @@ struct tegra_uart_port {
@@ -116,7 +42,7 @@ index 60b0a7e1547d..52384563a490 100644
  	mcr = tup->mcr_shadow;
  	if (active)
  		mcr |= TEGRA_UART_MCR_RTS_EN;
-@@ -1545,22 +1548,23 @@ static void tegra_uart_set_termios(struct uart_port *u,
+@@ -1547,22 +1550,23 @@ static void tegra_uart_set_termios(struct uart_port *u,
  		tty_termios_encode_baud_rate(termios, baud, baud);
  	spin_lock_irqsave(&u->lock, flags);
  
@@ -155,7 +81,7 @@ index 60b0a7e1547d..52384563a490 100644
  	/* update the port timeout based on new settings */
  	uart_update_timeout(u, termios->c_cflag, baud);
  
-@@ -1692,6 +1696,27 @@ static int tegra_uart_parse_dt(struct platform_device *pdev,
+@@ -1694,6 +1698,27 @@ static int tegra_uart_parse_dt(struct platform_device *pdev,
  	return 0;
  }
  
@@ -183,27 +109,15 @@ index 60b0a7e1547d..52384563a490 100644
  #ifdef CONFIG_DEBUG_FS
  static int tegra_uart_debug_show(struct seq_file *s, void *unused)
  {
-@@ -1840,6 +1865,8 @@ static int tegra_uart_probe(struct platform_device *pdev)
- 	u->fifosize = 32;
+@@ -1842,6 +1867,8 @@ static int tegra_uart_probe(struct platform_device *pdev)
+ 	u->fifosize = TEGRA_UART_FIFO_SIZE;
  	tup->cdata = cdata;
  
-+	u->rs485_config = tegra_uart_rs485_config;
++        u->rs485_config = tegra_uart_rs485_config;
 +
  	platform_set_drvdata(pdev, tup);
  	resource = platform_get_resource(pdev, IORESOURCE_MEM, 0);
  	if (!resource) {
-diff --git a/include/linux/mmc/host.h b/include/linux/mmc/host.h
-index cf7705f3640b..577cae474de6 100644
---- a/include/linux/mmc/host.h
-+++ b/include/linux/mmc/host.h
-@@ -369,6 +369,7 @@ struct mmc_host {
- 	u32			caps2;		/* More host capabilities */
- 
- #define MMC_CAP2_BOOTPART_NOACC	(1 << 0)	/* Boot partition no access */
-+#define MMC_CAP2_SLOT_REG_ALWAYS_ON (1 << 1)    /* Card slot regulator always on */
- #define MMC_CAP2_FULL_PWR_CYCLE	(1 << 2)	/* Can do full power cycle */
- #define MMC_CAP2_HS200_1_8V_SDR	(1 << 5)        /* can support */
- #define MMC_CAP2_HS200_1_2V_SDR	(1 << 6)        /* can support */
 diff --git a/nvidia/platform/t210/common/kernel-dts/t210-common-platforms/tegra210-p2530-common.dtsi b/nvidia/platform/t210/common/kernel-dts/t210-common-platforms/tegra210-p2530-common.dtsi
 index f8c06ec8b190..118abf920aa7 100644
 --- a/nvidia/platform/t210/common/kernel-dts/t210-common-platforms/tegra210-p2530-common.dtsi
@@ -274,7 +188,7 @@ index 3f29b58dc5cf..243e9cb33ef7 100644
  
  };
 diff --git a/nvidia/platform/t210/porg/kernel-dts/porg-platforms/tegra210-porg-pinmux-p3448-0000-b00.dtsi b/nvidia/platform/t210/porg/kernel-dts/porg-platforms/tegra210-porg-pinmux-p3448-0000-b00.dtsi
-index 77bf31057028..545adf1fef50 100644
+index eeb874cd799e..0f19c81403ac 100644
 --- a/nvidia/platform/t210/porg/kernel-dts/porg-platforms/tegra210-porg-pinmux-p3448-0000-b00.dtsi
 +++ b/nvidia/platform/t210/porg/kernel-dts/porg-platforms/tegra210-porg-pinmux-p3448-0000-b00.dtsi
 @@ -446,7 +446,7 @@
@@ -305,7 +219,7 @@ index 77bf31057028..545adf1fef50 100644
  
  			uart1_rts_pu2 {
 diff --git a/nvidia/platform/t210/porg/kernel-dts/porg-platforms/tegra210-porg-pinmux-p3448-0002-b00.dtsi b/nvidia/platform/t210/porg/kernel-dts/porg-platforms/tegra210-porg-pinmux-p3448-0002-b00.dtsi
-index 60e5bb40a826..11351d4a6f08 100644
+index 4892f201ba51..4891da228932 100644
 --- a/nvidia/platform/t210/porg/kernel-dts/porg-platforms/tegra210-porg-pinmux-p3448-0002-b00.dtsi
 +++ b/nvidia/platform/t210/porg/kernel-dts/porg-platforms/tegra210-porg-pinmux-p3448-0002-b00.dtsi
 @@ -390,7 +390,7 @@
@@ -361,10 +275,10 @@ index 93ec6e3876f4..8a0051d62efc 100644
  					no-mmc;
  					sd-uhs-sdr104;
 diff --git a/nvidia/platform/t210/porg/kernel-dts/tegra210-porg-p3448-common.dtsi b/nvidia/platform/t210/porg/kernel-dts/tegra210-porg-p3448-common.dtsi
-index 57cb90cb7ab1..667c6bb7f803 100644
+index 2a7d84445089..a3b28cc0fcd3 100644
 --- a/nvidia/platform/t210/porg/kernel-dts/tegra210-porg-p3448-common.dtsi
 +++ b/nvidia/platform/t210/porg/kernel-dts/tegra210-porg-p3448-common.dtsi
-@@ -291,14 +291,14 @@
+@@ -283,13 +283,14 @@
  	};
  
  	sdhci@700b0400 {
@@ -375,13 +289,12 @@ index 57cb90cb7ab1..667c6bb7f803 100644
  		mmc-ddr-1_8v;
  		mmc-ocr-mask = <3>;
  		uhs-mask = <0x0>;
--		max-clk-limit = <400000>;
  		tap-delay = <3>;
 +		nvidia,vmmc-always-on;
  	};
  
  	sdhci@700b0200 { /* SDMMC2 for Wifi */
-@@ -548,8 +548,7 @@
+@@ -542,8 +543,7 @@
  		ports {
  			usb2-0 {
  				status = "okay";
@@ -391,7 +304,7 @@ index 57cb90cb7ab1..667c6bb7f803 100644
  			};
  			usb2-1 {
  				status = "okay";
-@@ -837,6 +836,23 @@
+@@ -837,6 +837,23 @@
  				TEGRA_GPIO(A, 6) 0
  				>;
  		};

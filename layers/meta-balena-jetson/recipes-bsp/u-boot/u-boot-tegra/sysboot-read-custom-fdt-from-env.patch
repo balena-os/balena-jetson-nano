@@ -87,7 +87,7 @@ index ccade24..d5be338 100644
 +
 +							// dtbs are located in the same folder as the kernel
 +							snprintf(label->fdt, fdtlen + 7, "/boot/%s", env_fdt_file);
-+							printf("info: fdt file now is %s - %d\n", label->fdt, strlen(label->fdt));
++							printf("info: fdt file now is %s\n", label->fdt);
 +						}
 +					} else {
 +						printf("info: custom_fdt_file variable not defined, use default partition DTB\n");

@@ -60,7 +60,6 @@ tegraflash_roundup_size() {
 }
 
 BOOTFILES=" \
-    bmp.blob \
     eks.img \
     nvtboot_recovery.bin \
     nvtboot.bin \
@@ -151,12 +150,25 @@ do_configure() {
         dd if=/dev/zero bs=20480 count=1 of=${BOOT0} conv=notrunc
     fi
 
-    python3 tegraflash.py --bl cboot.bin --bldtb "${DTBFILE}" --chip 0x21 --applet nvtboot_recovery.bin --bct "${MACHINE}.cfg" --cfg flash.xml --cmd "sign" --keep --odmdata "${ODMDATA}" & \
+    # The Nano eMMC module does not have a qspi-nor memory to store the boot blob
+    if ${@bb.utils.contains('UBOOT_MACHINE', 'p3450-0002_defconfig','true','false',d)}; then
+        sed -i 's/device type="spi" instance="0"/device type="sdmmc" instance="3"/g' flash.xml
+        sed -i 's/device type="sdcard" instance="0"/device type="sdmmc" instance="3"/g' flash.xml
+        dd if=/dev/zero bs=4194304 count=1 > ${BOOT0}
+    else
+        dd if=/dev/zero count=4194304 bs=1 | tr "\000" "\377" > ${BOOT0}
+        dd if=/dev/zero bs=20480 count=1 of=${BOOT0} conv=notrunc seek=0
+    fi
     export _PID=$! ; wait ${_PID} || true
 
     # Disable cboot displayed vendor logo
-    dd if=/dev/zero of=./bmp.blob count=1 bs=70900
+    dd if=/dev/zero of=bmp.blob count=1 bs=1
 
+    touch VERFILE
+    python3 tegraflash.py --bl cboot.bin --bldtb "${DTBFILE}" --chip 0x21 --applet nvtboot_recovery.bin --bct "${MACHINE}.cfg" --cfg flash.xml --cmd "sign" --keep --odmdata "${ODMDATA}" & \
+        export _PID=$! ; wait ${_PID} || true
+
+    rm -rf ${DEPLOY_DIR_IMAGE}/bootfiles/*
     cp -r signed/* ${DEPLOY_DIR_IMAGE}/bootfiles/
     cp -r *.img    ${DEPLOY_DIR_IMAGE}/bootfiles/
     cp -r *.bin    ${DEPLOY_DIR_IMAGE}/bootfiles/
@@ -169,17 +181,38 @@ do_configure() {
     done
 
     dd if=${DEPLOY_DIR_IMAGE}/bootfiles/nvtboot.bin.encrypt of=${BOOT0} bs=1 seek=262144 conv=notrunc
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/nvtboot.bin.encrypt of=${BOOT0} bs=1 seek=524288 conv=notrunc
+
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/nvtboot_cpu.bin.encrypt of=${BOOT0} bs=1 seek=720896 conv=notrunc
+
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/${DTBFILE}.encrypt of=${BOOT0} bs=1 seek=851968 conv=notrunc
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/${DTBFILE}.encrypt of=${BOOT0} bs=1 seek=2555904 conv=notrunc
+
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/cboot.bin.encrypt of=${BOOT0} bs=1 seek=1179648 conv=notrunc
+
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/warmboot.bin.encrypt of=${BOOT0} bs=1 seek=1769472 conv=notrunc
+
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/sc7entry-firmware.bin.encrypt of=${BOOT0} bs=1 seek=1835008 conv=notrunc
+
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/tos-mon-only.img.encrypt of=${BOOT0} bs=1 seek=2097152 conv=notrunc
+
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/u-boot.bin.encrypt of=${BOOT0} bs=1 seek=2883584 conv=notrunc
+
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/eks.img of=${BOOT0} bs=1 seek=3637248 conv=notrunc
+
+    dd if=${DEPLOY_DIR_IMAGE}/bootfiles/rp4.blob of=${BOOT0} bs=1 seek=3899392 conv=notrunc
+
     dd if=${DEPLOY_DIR_IMAGE}/bootfiles/flash.xml.bin of=${BOOT0} bs=1 seek=458752 conv=notrunc
 
     cp ${S}/tegraflash/${BOOT0} ${DEPLOY_DIR_IMAGE}/bootfiles/
 }
 
 do_install() {
-    install -d ${D}/${BINARY_INSTALL_PATH}
-    cp -r ${S}/tegraflash/signed/* ${D}/${BINARY_INSTALL_PATH}
-    cp -rL ${DEPLOY_DIR_IMAGE}/bootfiles/* ${D}/${BINARY_INSTALL_PATH}
-    rm ${D}/${BINARY_INSTALL_PATH}/Image-initramfs* ${D}/${BINARY_INSTALL_PATH}/*.dtb ${D}/${BINARY_INSTALL_PATH}/*.xml
-    cp ${WORKDIR}/${PART_SPEC} ${D}/${BINARY_INSTALL_PATH}/
+     install -d ${D}/${BINARY_INSTALL_PATH}
+     cp -r ${S}/tegraflash/signed/* ${D}/${BINARY_INSTALL_PATH}
+     cp -rL ${DEPLOY_DIR_IMAGE}/bootfiles/* ${D}/${BINARY_INSTALL_PATH}
+     rm ${D}/${BINARY_INSTALL_PATH}/Image-initramfs* ${D}/${BINARY_INSTALL_PATH}/*.dtb ${D}/${BINARY_INSTALL_PATH}/*.xml
+     cp ${WORKDIR}/${PART_SPEC} ${D}/${BINARY_INSTALL_PATH}/
 }
 
 do_deploy() {
