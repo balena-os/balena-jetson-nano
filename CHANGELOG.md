@@ -1,6 +1,11 @@
 Change log
 -----------
 
+# v2.80.5+rev5
+## (2021-07-13)
+
+* Disable support for MD RAID1 rootfs on TX2 family [Michal Toman]
+
 # v2.80.5+rev4
 ## (2021-07-08)
 

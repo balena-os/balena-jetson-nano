@@ -1,4 +1,19 @@
 - commits:
+    - subject: Disable support for MD RAID1 rootfs on TX2 family
+      hash: 23348d0e215805c6dacca6ee83afd61fcb05ccb6
+      body: |
+        Including the mdadm utility in the initrd makes the image too big
+        to fit into the boot partition.
+      footer:
+        Changelog-entry: Disable support for MD RAID1 rootfs on TX2 family
+        changelog-entry: Disable support for MD RAID1 rootfs on TX2 family
+        Signed-off-by: Michal Toman <michalt@balena.io>
+        signed-off-by: Michal Toman <michalt@balena.io>
+      author: Michal Toman
+      nested: []
+  version: 2.80.5+rev5
+  date: 2021-07-13T12:12:46.844Z
+- commits:
     - subject: 'linux-firmware: drop temporary fw update changes'
       hash: 15dd5ac2b571fa8b6c019e4a30fb947db80ad3fc
       body: |
