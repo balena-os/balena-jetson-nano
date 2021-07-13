@@ -76,6 +76,15 @@ SRC_URI_append_photon-xavier-nx = " \
 
 TEGRA_INITRAMFS_INITRD = "0"
 
+BALENA_CONFIGS_remove_astro-tx2 = " mdraid"
+BALENA_CONFIGS_remove_blackboard-tx2 = " mdraid"
+BALENA_CONFIGS_remove_jetson-tx2-4-gb = " mdraid"
+BALENA_CONFIGS_remove_jetson-tx2 = " mdraid"
+BALENA_CONFIGS_remove_n310-tx2 = " mdraid"
+BALENA_CONFIGS_remove_n510-tx2 = " mdraid"
+BALENA_CONFIGS_remove_orbitty-tx2 = " mdraid"
+BALENA_CONFIGS_remove_spacely-tx2 = " mdraid"
+
 BALENA_CONFIGS_append = " tegra-wdt-t21x debug_kmemleak "
 
 BALENA_CONFIGS[tegra-wdt-t21x] = " \
